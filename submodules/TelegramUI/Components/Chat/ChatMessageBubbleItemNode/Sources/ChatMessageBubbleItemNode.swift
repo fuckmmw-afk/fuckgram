@@ -70,6 +70,7 @@ import ChatMessageUnsupportedBubbleContentNode
 import ChatMessageWallpaperBubbleContentNode
 import ChatMessageGiftBubbleContentNode
 import ChatMessageGiveawayBubbleContentNode
+import ChatMessageRichDataBubbleContentNode
 import ChatMessageJoinedChannelBubbleContentNode
 import ChatMessageFactCheckBubbleContentNode
 import ChatMessageUnlockMediaNode
@@ -294,6 +295,18 @@ private func contentNodeMessagesAndClassesForItem(_ item: ChatMessageItem) -> ([
             messageText = updatingMedia.text
         }
         
+        var richText: RichTextMessageAttribute?
+        if let updatingMedia = itemAttributes.updatingMedia {
+            richText = updatingMedia.richText
+        } else {
+            for attribute in message.attributes {
+                if let attribute = attribute as? RichTextMessageAttribute {
+                    richText = attribute
+                    break
+                }
+            }
+        }
+        
         if !messageText.isEmpty || isUnsupportedMedia || isStoryWithText {
             if !skipText {
                 if case .group = item.content, !isFile {
@@ -344,6 +357,11 @@ private func contentNodeMessagesAndClassesForItem(_ item: ChatMessageItem) -> ([
                 }
                 break inner
             }
+        }
+        
+        if richText != nil && !skipText {
+            result.append((message, ChatMessageRichDataBubbleContentNode.self, itemAttributes, BubbleItemAttributes(isAttachment: false, neighborType: .text, neighborSpacing: .default)))
+            needReactions = false
         }
         
         if message.adAttribute != nil {
@@ -6823,7 +6841,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
         }
         
         for contentNode in self.contentNodes {
-            if contentNode is ChatMessageMediaBubbleContentNode || contentNode is ChatMessageGiftBubbleContentNode || contentNode is ChatMessageWebpageBubbleContentNode || contentNode is ChatMessageInvoiceBubbleContentNode || contentNode is ChatMessageGameBubbleContentNode || contentNode is ChatMessageInstantVideoBubbleContentNode {
+            if contentNode is ChatMessageMediaBubbleContentNode || contentNode is ChatMessageGiftBubbleContentNode || contentNode is ChatMessageWebpageBubbleContentNode || contentNode is ChatMessageInvoiceBubbleContentNode || contentNode is ChatMessageGameBubbleContentNode || contentNode is ChatMessageInstantVideoBubbleContentNode || contentNode is ChatMessageRichDataBubbleContentNode {
                 contentNode.visibility = mapVisibility(effectiveMediaVisibility, boundsSize: self.bounds.size, insets: self.insets, to: contentNode)
             } else {
                 contentNode.visibility = mapVisibility(effectiveVisibility, boundsSize: self.bounds.size, insets: self.insets, to: contentNode)

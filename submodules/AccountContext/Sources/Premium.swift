@@ -43,6 +43,7 @@ public enum PremiumIntroSource {
     case animatedEmoji
     case messageEffects
     case todo
+    case richText
     case auth(String)
     case premiumGift(TelegramMediaFile)
 }

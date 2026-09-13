@@ -28,6 +28,7 @@ public enum AttachmentButtonType: Equatable {
     case app(AttachMenuBot)
     case gift
     case standalone
+    case richText
     
     public var key: String {
         switch self {
@@ -51,6 +52,8 @@ public enum AttachmentButtonType: Equatable {
             return "gift"
         case .standalone:
             return "standalone"
+        case .richText:
+            return "richText"
         }
     }
     
@@ -112,6 +115,12 @@ public enum AttachmentButtonType: Equatable {
             }
         case .standalone:
             if case .standalone = rhs {
+                return true
+            } else {
+                return false
+            }
+        case .richText:
+            if case .richText = rhs {
                 return true
             } else {
                 return false

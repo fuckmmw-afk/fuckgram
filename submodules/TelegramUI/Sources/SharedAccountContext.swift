@@ -2730,6 +2730,8 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             mappedSource = .animatedEmoji
         case .todo:
             mappedSource = .todo
+        case .richText:
+            mappedSource = .todo
         case let .auth(price):
             mappedSource = .auth(price)
         case let .premiumGift(file):

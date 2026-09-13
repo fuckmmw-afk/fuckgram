@@ -36,6 +36,11 @@ import ShareController
 import ComposeTodoScreen
 import ComposePollUI
 import Photos
+import ArticlesFeature
+import RichTextAttachmentScreen
+import RichTextEditorMessageConversion
+import ChatRichTextEditorComposer
+import Postbox
 
 extension ChatControllerImpl {
     enum AttachMenuSubject {
@@ -129,6 +134,10 @@ extension ChatControllerImpl {
         
         if canSendTodos {
             availableButtons.insert(.todo, at: max(0, availableButtons.count - 1))
+        }
+        
+        if ArticlesFeature.isEnabled, banSendText == nil {
+            availableButtons.insert(.richText, at: min(1, availableButtons.count))
         }
         
         let presentationData = self.presentationData
@@ -744,6 +753,8 @@ extension ChatControllerImpl {
                         completion(controller, controller.mediaPickerContext)
                         strongSelf.controllerNavigationDisposable.set(nil)
                     })
+                case .richText:
+                    strongSelf.presentRichTextComposer(completion: completion)
                 default:
                     break
                 }

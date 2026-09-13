@@ -225,6 +225,9 @@ private final class AttachButtonComponent: CombinedComponent {
             case .quickReply:
                 name = strings.Attachment_Reply
                 imageName = "Chat/Attach Menu/Reply"
+            case .richText:
+                name = strings.Attachment_Article
+                imageName = "Chat/Attach Menu/Article"
             }
 
             let tintColor = component.isSelected ? component.theme.rootController.tabBar.selectedIconColor : component.theme.rootController.tabBar.iconColor
@@ -1512,6 +1515,8 @@ final class AttachmentPanel: ASDisplayNode, ASScrollViewDelegate {
                 accessibilityTitle = ""
             case .quickReply:
                 accessibilityTitle = self.presentationData.strings.Attachment_Reply
+            case .richText:
+                accessibilityTitle = self.presentationData.strings.Attachment_Article
             }
             buttonView.isAccessibilityElement = true
             buttonView.accessibilityLabel = accessibilityTitle

@@ -290,6 +290,8 @@ public final class ChatControllerInteraction: ChatControllerInteractionProtocol 
     public let requestToggleTodoMessageItem: (MessageId, Int32, Bool) -> Void
     public let displayTodoToggleUnavailable: (MessageId) -> Void
     public let openStarsPurchase: (Int64?) -> Void
+    public let toggleMessageRichTextCheckbox: (EngineMessage.Id, [Int], Bool) -> Void
+    public let canEditMessageRichText: (Message) -> Bool
     
     public var canPlayMedia: Bool = false
     public var hiddenMedia: [MessageId: [Media]] = [:]
@@ -457,6 +459,8 @@ public final class ChatControllerInteraction: ChatControllerInteractionProtocol 
         requestToggleTodoMessageItem: @escaping (MessageId, Int32, Bool) -> Void,
         displayTodoToggleUnavailable: @escaping (MessageId) -> Void,
         openStarsPurchase: @escaping (Int64?) -> Void,
+        toggleMessageRichTextCheckbox: @escaping (EngineMessage.Id, [Int], Bool) -> Void = { _, _, _ in },
+        canEditMessageRichText: @escaping (Message) -> Bool = { _ in false },
         automaticMediaDownloadSettings: MediaAutoDownloadSettings,
         pollActionState: ChatInterfacePollActionState,
         stickerSettings: ChatInterfaceStickerSettings,
@@ -580,6 +584,8 @@ public final class ChatControllerInteraction: ChatControllerInteractionProtocol 
         self.requestToggleTodoMessageItem = requestToggleTodoMessageItem
         self.displayTodoToggleUnavailable = displayTodoToggleUnavailable
         self.openStarsPurchase = openStarsPurchase
+        self.toggleMessageRichTextCheckbox = toggleMessageRichTextCheckbox
+        self.canEditMessageRichText = canEditMessageRichText
         
         self.automaticMediaDownloadSettings = automaticMediaDownloadSettings
         

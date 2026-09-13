@@ -2,7 +2,7 @@ import Foundation
 import UIKit
 import SwiftSignalKit
 import Postbox
-import TelegramApi
+
 import TelegramCore
 import TelegramUIPreferences
 import PersistentStringHash
