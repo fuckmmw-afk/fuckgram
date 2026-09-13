@@ -32,10 +32,10 @@ func _internal_updatePeersNearbyVisibility(account: Account, update: PeerNearbyV
     switch update {
         case let .visible(latitude, longitude):
             flags |= (1 << 0)
-            geoPoint = .inputGeoPoint(flags: 0, lat: latitude, long: longitude, accuracyRadius: nil)
+            geoPoint = .inputGeoPoint(Api.InputGeoPoint.Cons_inputGeoPoint(flags: 0, lat: latitude, long: longitude, accuracyRadius: nil))
             selfExpires = 10800
         case let .location(latitude, longitude):
-            geoPoint = .inputGeoPoint(flags: 0, lat: latitude, long: longitude, accuracyRadius: nil)
+            geoPoint = .inputGeoPoint(Api.InputGeoPoint.Cons_inputGeoPoint(flags: 0, lat: latitude, long: longitude, accuracyRadius: nil))
         case .invisible:
             flags |= (1 << 0)
             geoPoint = .inputGeoPointEmpty
@@ -95,7 +95,7 @@ public final class PeersNearbyContext {
     public init(network: Network, stateManager: AccountStateManager, coordinate: (latitude: Double, longitude: Double)) {
         let expiryExtension: Double = 10.0
         
-        let poll = network.request(Api.functions.contacts.getLocated(flags: 0, geoPoint: .inputGeoPoint(flags: 0, lat: coordinate.latitude, long: coordinate.longitude, accuracyRadius: nil), selfExpires: nil))
+        let poll = network.request(Api.functions.contacts.getLocated(flags: 0, geoPoint: .inputGeoPoint(Api.InputGeoPoint.Cons_inputGeoPoint(flags: 0, lat: coordinate.latitude, long: coordinate.longitude, accuracyRadius: nil)), selfExpires: nil))
         |> map(Optional.init)
         |> `catch` { _ -> Signal<Api.Updates?, NoError> in
             return .single(nil)
@@ -105,15 +105,15 @@ public final class PeersNearbyContext {
             var peersNearby: [PeerNearby] = []
             if let updates = updates {
                 switch updates {
-                case let .updates(updates, _, _, _, _):
-                    for update in updates {
-                        if case let .updatePeerLocated(peers) = update {
-                            for peer in peers {
+                case let .updates(data):
+                    for update in data.updates {
+                        if case let .updatePeerLocated(located) = update {
+                            for peer in located.peers {
                                 switch peer {
-                                    case let .peerLocated(peer, expires, distance):
-                                        peersNearby.append(.peer(id: peer.peerId, expires: expires, distance: distance))
-                                    case let .peerSelfLocated(expires):
-                                        peersNearby.append(.selfPeer(expires: expires))
+                                    case let .peerLocated(locatedPeer):
+                                        peersNearby.append(.peer(id: locatedPeer.peer.peerId, expires: locatedPeer.expires, distance: locatedPeer.distance))
+                                    case let .peerSelfLocated(selfLocated):
+                                        peersNearby.append(.selfPeer(expires: selfLocated.expires))
                                 }
                             }
                         }
@@ -124,10 +124,6 @@ public final class PeersNearbyContext {
                 stateManager.addUpdates(updates)
             }
             return .single(peersNearby)
-            |> then(
-                stateManager.updatedPeersNearby()
-                |> castError(Void.self)
-            )
         }
                 
         let error: Signal<Void, Void> = .single(Void()) |> then(Signal.fail(Void()) |> suspendAwareDelay(25.0, queue: self.queue))
@@ -241,7 +237,7 @@ public func updateChannelGeoLocation(postbox: Postbox, network: Network, channel
         
         let geoPoint: Api.InputGeoPoint
         if let (latitude, longitude) = coordinate, let _ = address {
-            geoPoint = .inputGeoPoint(flags: 0, lat: latitude, long: longitude, accuracyRadius: nil)
+            geoPoint = .inputGeoPoint(Api.InputGeoPoint.Cons_inputGeoPoint(flags: 0, lat: latitude, long: longitude, accuracyRadius: nil))
         } else {
             geoPoint = .inputGeoPointEmpty
         }

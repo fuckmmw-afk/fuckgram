@@ -9,6 +9,15 @@ public extension MessageFlags {
 }
 
 public extension Message {
+    var ephemeralOutgoingAttribute: EphemeralOutgoingMessageAttribute? {
+        for attribute in self.attributes {
+            if let attribute = attribute as? EphemeralOutgoingMessageAttribute {
+                return attribute
+            }
+        }
+        return nil
+    }
+
     var visibleButtonKeyboardMarkup: ReplyMarkupMessageAttribute? {
         for attribute in self.attributes {
             if let attribute = attribute as? ReplyMarkupMessageAttribute {
@@ -246,18 +255,6 @@ func locallyRenderedMessage(message: StoreMessage, peers: [PeerId: Peer], associ
                 }
             }
         }
-        
-        if let channel = peer as? TelegramChannel, let linkedBotId = channel.linkedBotId {
-            if let channelPeer = peers[linkedBotId] {
-                messagePeers[linkedBotId] = channelPeer
-            }
-            
-            if let threadId = message.threadId {
-                if let threadPeer = peers[PeerId(threadId)] {
-                    messagePeers[threadPeer.id] = threadPeer
-                }
-            }
-        }
     }
     
     for media in message.media {
@@ -384,6 +381,8 @@ public extension Message {
     func effectivelyFailed(timestamp: Int32) -> Bool {
         if self.flags.contains(.Failed) {
             return true
+        } else if self.ephemeralOutgoingAttribute?.state == .failed {
+            return true
         } else if self.id.namespace == Namespaces.Message.ScheduledCloud && self.timestamp != scheduleWhenOnlineTimestamp {
             return timestamp > self.timestamp + 60
         } else {
@@ -452,6 +451,8 @@ public extension Message {
     var isSentOrAcknowledged: Bool {
         if self.flags.contains(.Failed) {
             return false
+        } else if self.ephemeralOutgoingAttribute?.state == .failed {
+            return false
         } else if self.flags.isSending {
             for attribute in self.attributes {
                 if let attribute = attribute as? OutgoingMessageInfoAttribute {
@@ -512,7 +513,25 @@ public extension Message {
         }
         return nil
     }
+    
+    var guestChatAttribute: GuestChatMessageAttribute? {
+        for attribute in self.attributes {
+            if let attribute = attribute as? GuestChatMessageAttribute {
+                return attribute
+            }
+        }
+        return nil
+    }
+    var isEphemeral: Bool {
+        for attribute in self.attributes {
+            if attribute is EphemeralMessageAttribute || attribute is EphemeralOutgoingMessageAttribute {
+                return true
+            }
+        }
+        return false
+    }
 }
+
 public extension Message {
     var reactionsAttribute: ReactionsMessageAttribute? {
         for attribute in self.attributes {
@@ -651,6 +670,39 @@ public extension Message {
             }
         }
         return false
+    }
+}
+
+public extension Message {
+    var richText: RichTextMessageAttribute? {
+        for attribute in self.attributes {
+            if let attribute = attribute as? RichTextMessageAttribute {
+                return attribute
+            }
+        }
+        return nil
+    }
+}
+
+public extension Message {
+    /// The media that should drive gallery / shared-media / preview surfaces for this message.
+    /// For a normal message this is exactly `self.media`. For a rich message (`text == ""`,
+    /// empty `media`, carrying a `RichTextMessageAttribute`) the media lives inside the
+    /// instant page, so fall back to it. Scope note: callers take the FIRST media for now.
+    var effectiveMedia: [Media] {
+        if !self.media.isEmpty {
+            return self.media
+        }
+        if let richText = self.richText {
+            return richText.instantPage.allMedia()
+        }
+        return self.media
+    }
+}
+
+public extension EngineMessage {
+    var effectiveMedia: [Media] {
+        return self._asMessage().effectiveMedia
     }
 }
 

@@ -13,6 +13,11 @@ struct AccountStateChannelState: Equatable {
     var pts: Int32
 }
 
+enum PeerLiveTypingDraftUpdateContent {
+    case plain(text: String, entities: [MessageTextEntity])
+    case rich(RichTextMessageAttribute)
+}
+
 final class AccountInitialState {
     let state: AuthorizedAccountState.State
     let peerIds: Set<PeerId>
@@ -59,6 +64,16 @@ enum AccountStateGlobalNotificationSettingsSubject {
     case channels
 }
 
+struct UpdatedApiPresence {
+    var status: Api.UserStatus
+    var isMin: Bool
+    
+    init(status: Api.UserStatus, isMin: Bool) {
+        self.status = status
+        self.isMin = isMin
+    }
+}
+
 enum AccountStateMutationOperation {
     case AddMessages([StoreMessage], AddMessagesLocation)
     case AddScheduledMessages([StoreMessage])
@@ -88,12 +103,12 @@ enum AccountStateMutationOperation {
     case UpdateCachedPeerData(PeerId, (CachedPeerData?) -> CachedPeerData?)
     case UpdateMessagesPinned([MessageId], Bool)
     case MergeApiUsers([Api.User])
-    case MergePeerPresences([PeerId: Api.UserStatus], Bool)
+    case MergePeerPresences([PeerId: UpdatedApiPresence], Bool)
     case UpdateSecretChat(chat: Api.EncryptedChat, timestamp: Int32)
     case AddSecretMessages([Api.EncryptedMessage])
     case ReadSecretOutbox(peerId: PeerId, maxTimestamp: Int32, actionTimestamp: Int32)
     case AddPeerInputActivity(chatPeerId: PeerActivitySpace, peerId: PeerId?, activity: PeerInputActivity?)
-    case AddPeerLiveTypingDraftUpdate(peerAndThreadId: PeerAndThreadId, id: Int64, timestamp: Int32, peerId: PeerId, text: String, entities: [MessageTextEntity])
+    case AddPeerLiveTypingDraftUpdate(peerAndThreadId: PeerAndThreadId, id: Int64, timestamp: Int32, peerId: PeerId, content: PeerLiveTypingDraftUpdateContent)
     case UpdatePinnedItemIds(PeerGroupId, AccountStateUpdatePinnedItemIdsOperation)
     case UpdatePinnedSavedItemIds(AccountStateUpdatePinnedItemIdsOperation)
     case UpdatePinnedTopic(peerId: PeerId, threadId: Int64, isPinned: Bool)
@@ -109,7 +124,6 @@ enum AccountStateMutationOperation {
     case UpdateLangPack(String, Api.LangPackDifference?)
     case UpdateMinAvailableMessage(MessageId)
     case UpdatePeerChatInclusion(peerId: PeerId, groupId: PeerGroupId, changedGroup: Bool)
-    case UpdatePeersNearby([PeerNearby])
     case UpdateTheme(TelegramTheme)
     case SyncChatListFilters
     case UpdateChatListFilterOrder(order: [Int32])
@@ -118,6 +132,8 @@ enum AccountStateMutationOperation {
     case UpdateGroupCallParticipants(id: Int64, accessHash: Int64, participants: [Api.GroupCallParticipant], version: Int32)
     case UpdateGroupCall(peerId: PeerId?, call: Api.GroupCall)
     case UpdateGroupCallChainBlocks(id: Int64, accessHash: Int64, subChainId: Int32, blocks: [Data], nextOffset: Int32)
+    case UpdateGroupCallMessage(id: Int64, authorId: PeerId, isFromAdmin: Bool, messageId: Int32, text: Api.TextWithEntities, date: Int32, paidMessageStars: Int64?)
+    case UpdateGroupCallOpaqueMessage(id: Int64, authorId: PeerId, data: Data)
     case UpdateAutoremoveTimeout(peer: Api.Peer, value: CachedPeerAutoremoveTimeout.Value?)
     case UpdateAttachMenuBots
     case UpdateAudioTranscription(messageId: MessageId, id: Int64, isPending: Bool, text: String)
@@ -129,12 +145,18 @@ enum AccountStateMutationOperation {
     case UpdateStoryStealthMode(data: Api.StoriesStealthMode)
     case UpdateStorySentReaction(peerId: PeerId, id: Int32, reaction: Api.Reaction)
     case UpdateNewAuthorization(isUnconfirmed: Bool, hash: Int64, date: Int32, device: String, location: String)
+    case UpdateNewBotConnection(confirmed: Bool, botId: PeerId, date: Int32?, device: String?, location: String?)
+    case UpdateWebBrowserSettings(openExternalBrowser: Bool)
+    case UpdateWebBrowserException(openExternalBrowser: Bool?, delete: Bool, exception: AccountWebBrowserException)
     case UpdateWallpaper(peerId: PeerId, wallpaper: TelegramWallpaper?)
     case UpdateStarsBalance(peerId: PeerId, currency: CurrencyAmount.Currency, balance: StarsAmount)
     case UpdateStarsRevenueStatus(peerId: PeerId, status: StarsRevenueStats.Balances)
     case UpdateStarsReactionsDefaultPrivacy(privacy: TelegramPaidReactionPrivacy)
     case ReportMessageDelivery([MessageId])
     case UpdateMonoForumNoPaidException(peerId: PeerId, threadId: Int64, isFree: Bool)
+    case UpdateStarGiftAuctionState(giftId: Int64, state: GiftAuctionContext.State.AuctionState)
+    case UpdateStarGiftAuctionMyState(giftId: Int64, state: GiftAuctionContext.State.MyState)
+    case UpdateEmojiGameInfo(info: EmojiGameInfo)
 }
 
 struct HoleFromPreviousState {
@@ -222,6 +244,7 @@ struct AccountMutableState {
     var storedMessagesByPeerIdAndTimestamp: [PeerId: Set<MessageIndex>]
     var displayAlerts: [(text: String, isDropAuth: Bool)] = []
     var dismissBotWebViews: [Int64] = []
+    var joinChatWebViewDecisions: [JoinChatWebViewDecision] = []
     
     var insertedPeers: [PeerId: Peer] = [:]
     
@@ -254,7 +277,7 @@ struct AccountMutableState {
         self.updatedOutgoingUniqueMessageIds = [:]
     }
     
-    init(initialState: AccountInitialState, operations: [AccountStateMutationOperation], state: AuthorizedAccountState.State, peers: [PeerId: Peer], apiChats: [PeerId: Api.Chat], channelStates: [PeerId: AccountStateChannelState], peerChatInfos: [PeerId: PeerChatInfo], referencedReplyMessageIds: ReferencedReplyMessageIds, referencedGeneralMessageIds: Set<MessageId>, storedMessages: Set<MessageId>, storedStories: [StoryId: UpdatesStoredStory], sentScheduledMessageIds: Set<MessageId>, readInboxMaxIds: [PeerId: MessageId], storedMessagesByPeerIdAndTimestamp: [PeerId: Set<MessageIndex>], namespacesWithHolesFromPreviousState: [PeerId: [MessageId.Namespace: HoleFromPreviousState]], updatedOutgoingUniqueMessageIds: [Int64: Int32], displayAlerts: [(text: String, isDropAuth: Bool)], dismissBotWebViews: [Int64], branchOperationIndex: Int) {
+    init(initialState: AccountInitialState, operations: [AccountStateMutationOperation], state: AuthorizedAccountState.State, peers: [PeerId: Peer], apiChats: [PeerId: Api.Chat], channelStates: [PeerId: AccountStateChannelState], peerChatInfos: [PeerId: PeerChatInfo], referencedReplyMessageIds: ReferencedReplyMessageIds, referencedGeneralMessageIds: Set<MessageId>, storedMessages: Set<MessageId>, storedStories: [StoryId: UpdatesStoredStory], sentScheduledMessageIds: Set<MessageId>, readInboxMaxIds: [PeerId: MessageId], storedMessagesByPeerIdAndTimestamp: [PeerId: Set<MessageIndex>], namespacesWithHolesFromPreviousState: [PeerId: [MessageId.Namespace: HoleFromPreviousState]], updatedOutgoingUniqueMessageIds: [Int64: Int32], displayAlerts: [(text: String, isDropAuth: Bool)], dismissBotWebViews: [Int64], joinChatWebViewDecisions: [JoinChatWebViewDecision], branchOperationIndex: Int) {
         self.initialState = initialState
         self.operations = operations
         self.state = state
@@ -273,11 +296,12 @@ struct AccountMutableState {
         self.updatedOutgoingUniqueMessageIds = updatedOutgoingUniqueMessageIds
         self.displayAlerts = displayAlerts
         self.dismissBotWebViews = dismissBotWebViews
+        self.joinChatWebViewDecisions = joinChatWebViewDecisions
         self.branchOperationIndex = branchOperationIndex
     }
     
     func branch() -> AccountMutableState {
-        return AccountMutableState(initialState: self.initialState, operations: self.operations, state: self.state, peers: self.peers, apiChats: self.apiChats, channelStates: self.channelStates, peerChatInfos: self.peerChatInfos, referencedReplyMessageIds: self.referencedReplyMessageIds, referencedGeneralMessageIds: self.referencedGeneralMessageIds, storedMessages: self.storedMessages, storedStories: self.storedStories, sentScheduledMessageIds: self.sentScheduledMessageIds, readInboxMaxIds: self.readInboxMaxIds, storedMessagesByPeerIdAndTimestamp: self.storedMessagesByPeerIdAndTimestamp, namespacesWithHolesFromPreviousState: self.namespacesWithHolesFromPreviousState, updatedOutgoingUniqueMessageIds: self.updatedOutgoingUniqueMessageIds, displayAlerts: self.displayAlerts, dismissBotWebViews: self.dismissBotWebViews, branchOperationIndex: self.operations.count)
+        return AccountMutableState(initialState: self.initialState, operations: self.operations, state: self.state, peers: self.peers, apiChats: self.apiChats, channelStates: self.channelStates, peerChatInfos: self.peerChatInfos, referencedReplyMessageIds: self.referencedReplyMessageIds, referencedGeneralMessageIds: self.referencedGeneralMessageIds, storedMessages: self.storedMessages, storedStories: self.storedStories, sentScheduledMessageIds: self.sentScheduledMessageIds, readInboxMaxIds: self.readInboxMaxIds, storedMessagesByPeerIdAndTimestamp: self.storedMessagesByPeerIdAndTimestamp, namespacesWithHolesFromPreviousState: self.namespacesWithHolesFromPreviousState, updatedOutgoingUniqueMessageIds: self.updatedOutgoingUniqueMessageIds, displayAlerts: self.displayAlerts, dismissBotWebViews: self.dismissBotWebViews, joinChatWebViewDecisions: self.joinChatWebViewDecisions, branchOperationIndex: self.operations.count)
     }
     
     mutating func merge(_ other: AccountMutableState) {
@@ -321,6 +345,7 @@ struct AccountMutableState {
         self.updatedOutgoingUniqueMessageIds.merge(other.updatedOutgoingUniqueMessageIds, uniquingKeysWith: { lhs, _ in lhs })
         self.displayAlerts.append(contentsOf: other.displayAlerts)
         self.dismissBotWebViews.append(contentsOf: other.dismissBotWebViews)
+        self.joinChatWebViewDecisions.append(contentsOf: other.joinChatWebViewDecisions)
         
         self.resetForumTopicLists.merge(other.resetForumTopicLists, uniquingKeysWith: { lhs, _ in lhs })
     }
@@ -355,6 +380,10 @@ struct AccountMutableState {
 
     mutating func addDismissWebView(_ queryId: Int64) {
         self.dismissBotWebViews.append(queryId)
+    }
+
+    mutating func addJoinChatWebViewDecision(_ decision: JoinChatWebViewDecision) {
+        self.joinChatWebViewDecisions.append(decision)
     }
 
     mutating func deleteMessagesWithGlobalIds(_ globalIds: [Int32]) {
@@ -409,6 +438,14 @@ struct AccountMutableState {
         self.addOperation(.UpdateGroupCallChainBlocks(id: id, accessHash: accessHash, subChainId: subChainId, blocks: blocks, nextOffset: nextOffset))
     }
     
+    mutating func updateGroupCallMessage(id: Int64, authorId: PeerId, isFromAdmin: Bool, messageId: Int32, text: Api.TextWithEntities, date: Int32, paidMessageStars: Int64?) {
+        self.addOperation(.UpdateGroupCallMessage(id: id, authorId: authorId, isFromAdmin: isFromAdmin, messageId: messageId, text: text, date: date, paidMessageStars: paidMessageStars))
+    }
+    
+    mutating func updateGroupCallOpaqueMessage(id: Int64, authorId: PeerId, data: Data) {
+        self.addOperation(.UpdateGroupCallOpaqueMessage(id: id, authorId: authorId, data: data))
+    }
+    
     mutating func updateAutoremoveTimeout(peer: Api.Peer, value: CachedPeerAutoremoveTimeout.Value?) {
         self.addOperation(.UpdateAutoremoveTimeout(peer: peer, value: value))
     }
@@ -434,7 +471,7 @@ struct AccountMutableState {
     }
     
     mutating func updateState(_ state: AuthorizedAccountState.State) {
-        if self.initialState.state.seq != state.qts {
+        if self.initialState.state.qts != state.qts {
             self.updatedQts = state.qts
         }
         self.addOperation(.UpdateState(state))
@@ -495,7 +532,8 @@ struct AccountMutableState {
         
         for chat in chats {
             switch chat {
-                case let .channel(_, _, _, _, _, _, _, _, _, _, _, _, participantsCount, _, _, _, _, _, _, _, _, _, _, _):
+                case let .channel(channelData):
+                    let participantsCount = channelData.participantsCount
                     if let participantsCount = participantsCount {
                         self.addOperation(.UpdateCachedPeerData(chat.peerId, { current in
                             var previous: CachedChannelData
@@ -540,11 +578,7 @@ struct AccountMutableState {
     mutating func updatePeerChatInclusion(peerId: PeerId, groupId: PeerGroupId, changedGroup: Bool) {
         self.addOperation(.UpdatePeerChatInclusion(peerId: peerId, groupId: groupId, changedGroup: changedGroup))
     }
-    
-    mutating func updatePeersNearby(_ peersNearby: [PeerNearby]) {
-        self.addOperation(.UpdatePeersNearby(peersNearby))
-    }
-        
+            
     mutating func updateTheme(_ theme: TelegramTheme) {
         self.addOperation(.UpdateTheme(theme))
     }
@@ -556,16 +590,18 @@ struct AccountMutableState {
     mutating func mergeUsers(_ users: [Api.User]) {
         self.addOperation(.MergeApiUsers(users))
         
-        var presences: [PeerId: Api.UserStatus] = [:]
+        var presences: [PeerId: UpdatedApiPresence] = [:]
         for user in users {
             switch user {
-                case let .user(_, _, id, _, _, _, _, _, _, status, _, _, _, _, _, _, _, _, _, _, _, _):
-                    if let status = status {
-                        presences[PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(id))] = status
-                    }
-                    break
-                case .userEmpty:
-                    break
+            case let .user(userData):
+                let (id, status) = (userData.id, userData.status)
+                let isMin = (userData.flags & (1 << 20)) != 0
+                if let status = status {
+                    presences[PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(id))] = UpdatedApiPresence(status: status, isMin: isMin)
+                }
+                break
+            case .userEmpty:
+                break
             }
         }
         if !presences.isEmpty {
@@ -574,7 +610,7 @@ struct AccountMutableState {
     }
     
     mutating func mergePeerPresences(_ presences: [PeerId: Api.UserStatus], explicit: Bool) {
-        self.addOperation(.MergePeerPresences(presences, explicit))
+        self.addOperation(.MergePeerPresences(presences.mapValues({ UpdatedApiPresence(status: $0, isMin: false) }), explicit))
     }
     
     mutating func updateSecretChat(chat: Api.EncryptedChat, timestamp: Int32) {
@@ -593,8 +629,8 @@ struct AccountMutableState {
         self.addOperation(.AddPeerInputActivity(chatPeerId: chatPeerId, peerId: peerId, activity: activity))
     }
     
-    mutating func addPeerLiveTypingDraftUpdate(peerAndThreadId: PeerAndThreadId, id: Int64, timestamp: Int32, peerId: PeerId, text: String, entities: [MessageTextEntity]) {
-        self.addOperation(.AddPeerLiveTypingDraftUpdate(peerAndThreadId: peerAndThreadId, id: id, timestamp: timestamp, peerId: peerId, text: text, entities: entities))
+    mutating func addPeerLiveTypingDraftUpdate(peerAndThreadId: PeerAndThreadId, id: Int64, timestamp: Int32, peerId: PeerId, content: PeerLiveTypingDraftUpdateContent) {
+        self.addOperation(.AddPeerLiveTypingDraftUpdate(peerAndThreadId: peerAndThreadId, id: id, timestamp: timestamp, peerId: peerId, content: content))
     }
     
     mutating func addUpdatePinnedItemIds(groupId: PeerGroupId, operation: AccountStateUpdatePinnedItemIdsOperation) {
@@ -697,6 +733,18 @@ struct AccountMutableState {
         self.addOperation(.UpdateNewAuthorization(isUnconfirmed: isUnconfirmed, hash: hash, date: date, device: device, location: location))
     }
     
+    mutating func updateNewBotConnection(confirmed: Bool, botId: PeerId, date: Int32?, device: String?, location: String?) {
+        self.addOperation(.UpdateNewBotConnection(confirmed: confirmed, botId: botId, date: date, device: device, location: location))
+    }
+
+    mutating func updateWebBrowserSettings(openExternalBrowser: Bool) {
+        self.addOperation(.UpdateWebBrowserSettings(openExternalBrowser: openExternalBrowser))
+    }
+
+    mutating func updateWebBrowserException(openExternalBrowser: Bool?, delete: Bool, exception: AccountWebBrowserException) {
+        self.addOperation(.UpdateWebBrowserException(openExternalBrowser: openExternalBrowser, delete: delete, exception: exception))
+    }
+    
     mutating func updateStarsBalance(peerId: PeerId, currency: CurrencyAmount.Currency, balance: StarsAmount) {
         self.addOperation(.UpdateStarsBalance(peerId: peerId, currency: currency, balance: balance))
     }
@@ -717,9 +765,21 @@ struct AccountMutableState {
         self.addOperation(.UpdateMonoForumNoPaidException(peerId: peerId, threadId: threadId, isFree: isFree))
     }
     
+    mutating func updateStarGiftAuctionState(giftId: Int64, state: GiftAuctionContext.State.AuctionState) {
+        self.addOperation(.UpdateStarGiftAuctionState(giftId: giftId, state: state))
+    }
+    
+    mutating func updateStarGiftAuctionMyState(giftId: Int64, state: GiftAuctionContext.State.MyState) {
+        self.addOperation(.UpdateStarGiftAuctionMyState(giftId: giftId, state: state))
+    }
+    
+    mutating func updateEmojiGameInfo(info: EmojiGameInfo) {
+        self.addOperation(.UpdateEmojiGameInfo(info: info))
+    }
+    
     mutating func addOperation(_ operation: AccountStateMutationOperation) {
         switch operation {
-        case .DeleteMessages, .DeleteMessagesWithGlobalIds, .EditMessage, .UpdateMessagePoll, .UpdateMessageReactions, .UpdateMedia, .ReadOutbox, .ReadGroupFeedInbox, .MergePeerPresences, .UpdateSecretChat, .AddSecretMessages, .ReadSecretOutbox, .AddPeerInputActivity, .AddPeerLiveTypingDraftUpdate, .UpdateCachedPeerData, .UpdatePinnedItemIds, .UpdatePinnedSavedItemIds, .UpdatePinnedTopic, .UpdatePinnedTopicOrder, .ReadMessageContents, .UpdateMessageImpressionCount, .UpdateMessageForwardsCount, .UpdateInstalledStickerPacks, .UpdateRecentGifs, .UpdateChatInputState, .UpdateCall, .AddCallSignalingData, .UpdateLangPack, .UpdateMinAvailableMessage, .UpdatePeerChatUnreadMark, .UpdateIsContact, .UpdatePeerChatInclusion, .UpdatePeersNearby, .UpdateTheme, .UpdateWallpaper, .SyncChatListFilters, .UpdateChatListFilterOrder, .UpdateChatListFilter, .UpdateReadThread, .UpdateGroupCallParticipants, .UpdateGroupCall, .UpdateGroupCallChainBlocks, .UpdateMessagesPinned, .UpdateAutoremoveTimeout, .UpdateAttachMenuBots, .UpdateAudioTranscription, .UpdateConfig, .UpdateExtendedMedia, .ResetForumTopic, .UpdateStory, .UpdateReadStories, .UpdateStoryStealthMode, .UpdateStorySentReaction, .UpdateNewAuthorization, .UpdateStarsBalance, .UpdateStarsRevenueStatus, .UpdateStarsReactionsDefaultPrivacy, .ReportMessageDelivery, .UpdateMonoForumNoPaidException:
+        case .DeleteMessages, .DeleteMessagesWithGlobalIds, .EditMessage, .UpdateMessagePoll, .UpdateMessageReactions, .UpdateMedia, .ReadOutbox, .ReadGroupFeedInbox, .MergePeerPresences, .UpdateSecretChat, .AddSecretMessages, .ReadSecretOutbox, .AddPeerInputActivity, .AddPeerLiveTypingDraftUpdate, .UpdateCachedPeerData, .UpdatePinnedItemIds, .UpdatePinnedSavedItemIds, .UpdatePinnedTopic, .UpdatePinnedTopicOrder, .ReadMessageContents, .UpdateMessageImpressionCount, .UpdateMessageForwardsCount, .UpdateInstalledStickerPacks, .UpdateRecentGifs, .UpdateChatInputState, .UpdateCall, .AddCallSignalingData, .UpdateLangPack, .UpdateMinAvailableMessage, .UpdatePeerChatUnreadMark, .UpdateIsContact, .UpdatePeerChatInclusion, .UpdateTheme, .UpdateWallpaper, .SyncChatListFilters, .UpdateChatListFilterOrder, .UpdateChatListFilter, .UpdateReadThread, .UpdateGroupCallParticipants, .UpdateGroupCall, .UpdateGroupCallChainBlocks, .UpdateGroupCallMessage, .UpdateGroupCallOpaqueMessage, .UpdateMessagesPinned, .UpdateAutoremoveTimeout, .UpdateAttachMenuBots, .UpdateAudioTranscription, .UpdateConfig, .UpdateExtendedMedia, .ResetForumTopic, .UpdateStory, .UpdateReadStories, .UpdateStoryStealthMode, .UpdateStorySentReaction, .UpdateNewAuthorization, .UpdateNewBotConnection, .UpdateWebBrowserSettings, .UpdateWebBrowserException, .UpdateStarsBalance, .UpdateStarsRevenueStatus, .UpdateStarsReactionsDefaultPrivacy, .ReportMessageDelivery, .UpdateMonoForumNoPaidException, .UpdateStarGiftAuctionState, .UpdateStarGiftAuctionMyState, .UpdateEmojiGameInfo:
                 break
             case let .AddMessages(messages, location):
                 for message in messages {
@@ -855,8 +915,8 @@ struct AccountReplayedFinalState {
     let updatedCalls: [Api.PhoneCall]
     let addedCallSignalingData: [(Int64, Data)]
     let updatedGroupCallParticipants: [(Int64, GroupCallParticipantsContext.Update)]
+    let groupCallMessageUpdates: [GroupCallMessageUpdate]
     let storyUpdates: [InternalStoryUpdate]
-    let updatedPeersNearby: [PeerNearby]?
     let isContactUpdates: [(PeerId, Bool)]
     let delayNotificatonsUntil: Int32?
     let updatedIncomingThreadReadStates: [PeerAndBoundThreadId: MessageId.Id]
@@ -869,6 +929,9 @@ struct AccountReplayedFinalState {
     let sentScheduledMessageIds: Set<MessageId>
     let reportMessageDelivery: Set<MessageId>
     let addedConferenceInvitationMessagesIds: [MessageId]
+    let updatedStarGiftAuctionState: [Int64: GiftAuctionContext.State.AuctionState]
+    let updatedStarGiftAuctionMyState: [Int64: GiftAuctionContext.State.MyState]
+    let updatedEmojiGameInfo: EmojiGameInfo?
 }
 
 struct AccountFinalStateEvents {
@@ -882,11 +945,12 @@ struct AccountFinalStateEvents {
     let updatedCalls: [Api.PhoneCall]
     let addedCallSignalingData: [(Int64, Data)]
     let updatedGroupCallParticipants: [(Int64, GroupCallParticipantsContext.Update)]
+    let groupCallMessageUpdates: [GroupCallMessageUpdate]
     let storyUpdates: [InternalStoryUpdate]
-    let updatedPeersNearby: [PeerNearby]?
     let isContactUpdates: [(PeerId, Bool)]
     let displayAlerts: [(text: String, isDropAuth: Bool)]
     let dismissBotWebViews: [Int64]
+    let joinChatWebViewDecisions: [JoinChatWebViewDecision]
     let delayNotificatonsUntil: Int32?
     let updatedMaxMessageId: Int32?
     let updatedQts: Int32?
@@ -901,12 +965,15 @@ struct AccountFinalStateEvents {
     let updatedStarsRevenueStatus: [PeerId: StarsRevenueStats.Balances]
     let reportMessageDelivery: Set<MessageId>
     let addedConferenceInvitationMessagesIds: [MessageId]
+    let updatedStarGiftAuctionState: [Int64: GiftAuctionContext.State.AuctionState]
+    let updatedStarGiftAuctionMyState: [Int64: GiftAuctionContext.State.MyState]
+    let updatedEmojiGameInfo: EmojiGameInfo?
     
     var isEmpty: Bool {
-        return self.addedIncomingMessageIds.isEmpty && self.addedReactionEvents.isEmpty && self.wasScheduledMessageIds.isEmpty && self.deletedMessageIds.isEmpty && self.sentScheduledMessageIds.isEmpty && self.updatedTypingActivities.isEmpty && self.updatedWebpages.isEmpty && self.updatedCalls.isEmpty && self.addedCallSignalingData.isEmpty && self.updatedGroupCallParticipants.isEmpty && self.storyUpdates.isEmpty && self.updatedPeersNearby?.isEmpty ?? true && self.isContactUpdates.isEmpty && self.displayAlerts.isEmpty && self.dismissBotWebViews.isEmpty && self.delayNotificatonsUntil == nil && self.updatedMaxMessageId == nil && self.updatedQts == nil && self.externallyUpdatedPeerId.isEmpty && !authorizationListUpdated && self.updatedIncomingThreadReadStates.isEmpty && self.updatedOutgoingThreadReadStates.isEmpty && !self.updateConfig && !self.isPremiumUpdated && self.updatedStarsBalance.isEmpty && self.updatedTonBalance.isEmpty && self.updatedStarsRevenueStatus.isEmpty && self.reportMessageDelivery.isEmpty && self.addedConferenceInvitationMessagesIds.isEmpty
+        return self.addedIncomingMessageIds.isEmpty && self.addedReactionEvents.isEmpty && self.wasScheduledMessageIds.isEmpty && self.deletedMessageIds.isEmpty && self.sentScheduledMessageIds.isEmpty && self.updatedTypingActivities.isEmpty && self.updatedWebpages.isEmpty && self.updatedCalls.isEmpty && self.addedCallSignalingData.isEmpty && self.updatedGroupCallParticipants.isEmpty && self.groupCallMessageUpdates.isEmpty && self.storyUpdates.isEmpty && self.isContactUpdates.isEmpty && self.displayAlerts.isEmpty && self.dismissBotWebViews.isEmpty && self.joinChatWebViewDecisions.isEmpty && self.delayNotificatonsUntil == nil && self.updatedMaxMessageId == nil && self.updatedQts == nil && self.externallyUpdatedPeerId.isEmpty && !authorizationListUpdated && self.updatedIncomingThreadReadStates.isEmpty && self.updatedOutgoingThreadReadStates.isEmpty && !self.updateConfig && !self.isPremiumUpdated && self.updatedStarsBalance.isEmpty && self.updatedTonBalance.isEmpty && self.updatedStarsRevenueStatus.isEmpty && self.reportMessageDelivery.isEmpty && self.addedConferenceInvitationMessagesIds.isEmpty && self.updatedStarGiftAuctionState.isEmpty && self.updatedStarGiftAuctionMyState.isEmpty && self.updatedEmojiGameInfo == nil
     }
     
-    init(addedIncomingMessageIds: [MessageId] = [], addedReactionEvents: [(reactionAuthor: Peer, reaction: MessageReaction.Reaction, message: Message, timestamp: Int32)] = [], wasScheduledMessageIds: [MessageId] = [], deletedMessageIds: [DeletedMessageId] = [], updatedTypingActivities: [PeerActivitySpace: [PeerId: PeerInputActivity?]] = [:], updatedWebpages: [MediaId: TelegramMediaWebpage] = [:], updatedCalls: [Api.PhoneCall] = [], addedCallSignalingData: [(Int64, Data)] = [], updatedGroupCallParticipants: [(Int64, GroupCallParticipantsContext.Update)] = [], storyUpdates: [InternalStoryUpdate] = [], updatedPeersNearby: [PeerNearby]? = nil, isContactUpdates: [(PeerId, Bool)] = [], displayAlerts: [(text: String, isDropAuth: Bool)] = [], dismissBotWebViews: [Int64] = [], delayNotificatonsUntil: Int32? = nil, updatedMaxMessageId: Int32? = nil, updatedQts: Int32? = nil, externallyUpdatedPeerId: Set<PeerId> = Set(), authorizationListUpdated: Bool = false, updatedIncomingThreadReadStates: [PeerAndBoundThreadId: MessageId.Id] = [:], updatedOutgoingThreadReadStates: [PeerAndBoundThreadId: MessageId.Id] = [:], updateConfig: Bool = false, isPremiumUpdated: Bool = false, updatedStarsBalance: [PeerId: StarsAmount] = [:], updatedTonBalance: [PeerId: StarsAmount] = [:], updatedStarsRevenueStatus: [PeerId: StarsRevenueStats.Balances] = [:], sentScheduledMessageIds: Set<MessageId> = Set(), reportMessageDelivery: Set<MessageId> = Set(), addedConferenceInvitationMessagesIds: [MessageId] = []) {
+    init(addedIncomingMessageIds: [MessageId] = [], addedReactionEvents: [(reactionAuthor: Peer, reaction: MessageReaction.Reaction, message: Message, timestamp: Int32)] = [], wasScheduledMessageIds: [MessageId] = [], deletedMessageIds: [DeletedMessageId] = [], updatedTypingActivities: [PeerActivitySpace: [PeerId: PeerInputActivity?]] = [:], updatedWebpages: [MediaId: TelegramMediaWebpage] = [:], updatedCalls: [Api.PhoneCall] = [], addedCallSignalingData: [(Int64, Data)] = [], updatedGroupCallParticipants: [(Int64, GroupCallParticipantsContext.Update)] = [], groupCallMessageUpdates: [GroupCallMessageUpdate] = [], storyUpdates: [InternalStoryUpdate] = [], isContactUpdates: [(PeerId, Bool)] = [], displayAlerts: [(text: String, isDropAuth: Bool)] = [], dismissBotWebViews: [Int64] = [], joinChatWebViewDecisions: [JoinChatWebViewDecision] = [], delayNotificatonsUntil: Int32? = nil, updatedMaxMessageId: Int32? = nil, updatedQts: Int32? = nil, externallyUpdatedPeerId: Set<PeerId> = Set(), authorizationListUpdated: Bool = false, updatedIncomingThreadReadStates: [PeerAndBoundThreadId: MessageId.Id] = [:], updatedOutgoingThreadReadStates: [PeerAndBoundThreadId: MessageId.Id] = [:], updateConfig: Bool = false, isPremiumUpdated: Bool = false, updatedStarsBalance: [PeerId: StarsAmount] = [:], updatedTonBalance: [PeerId: StarsAmount] = [:], updatedStarsRevenueStatus: [PeerId: StarsRevenueStats.Balances] = [:], sentScheduledMessageIds: Set<MessageId> = Set(), reportMessageDelivery: Set<MessageId> = Set(), addedConferenceInvitationMessagesIds: [MessageId] = [], updatedStarGiftAuctionState: [Int64: GiftAuctionContext.State.AuctionState] = [:], updatedStarGiftAuctionMyState: [Int64: GiftAuctionContext.State.MyState] = [:], updatedEmojiGameInfo: EmojiGameInfo? = nil) {
         self.addedIncomingMessageIds = addedIncomingMessageIds
         self.addedReactionEvents = addedReactionEvents
         self.wasScheduledMessageIds = wasScheduledMessageIds
@@ -916,11 +983,12 @@ struct AccountFinalStateEvents {
         self.updatedCalls = updatedCalls
         self.addedCallSignalingData = addedCallSignalingData
         self.updatedGroupCallParticipants = updatedGroupCallParticipants
+        self.groupCallMessageUpdates = groupCallMessageUpdates
         self.storyUpdates = storyUpdates
-        self.updatedPeersNearby = updatedPeersNearby
         self.isContactUpdates = isContactUpdates
         self.displayAlerts = displayAlerts
         self.dismissBotWebViews = dismissBotWebViews
+        self.joinChatWebViewDecisions = joinChatWebViewDecisions
         self.delayNotificatonsUntil = delayNotificatonsUntil
         self.updatedMaxMessageId = updatedMaxMessageId
         self.updatedQts = updatedQts
@@ -936,6 +1004,9 @@ struct AccountFinalStateEvents {
         self.sentScheduledMessageIds = sentScheduledMessageIds
         self.reportMessageDelivery = reportMessageDelivery
         self.addedConferenceInvitationMessagesIds = addedConferenceInvitationMessagesIds
+        self.updatedStarGiftAuctionState = updatedStarGiftAuctionState
+        self.updatedStarGiftAuctionMyState = updatedStarGiftAuctionMyState
+        self.updatedEmojiGameInfo = updatedEmojiGameInfo
     }
     
     init(state: AccountReplayedFinalState) {
@@ -948,11 +1019,12 @@ struct AccountFinalStateEvents {
         self.updatedCalls = state.updatedCalls
         self.addedCallSignalingData = state.addedCallSignalingData
         self.updatedGroupCallParticipants = state.updatedGroupCallParticipants
+        self.groupCallMessageUpdates = state.groupCallMessageUpdates
         self.storyUpdates = state.storyUpdates
-        self.updatedPeersNearby = state.updatedPeersNearby
         self.isContactUpdates = state.isContactUpdates
         self.displayAlerts = state.state.state.displayAlerts
         self.dismissBotWebViews = state.state.state.dismissBotWebViews
+        self.joinChatWebViewDecisions = state.state.state.joinChatWebViewDecisions
         self.delayNotificatonsUntil = state.delayNotificatonsUntil
         self.updatedMaxMessageId = state.state.state.updatedMaxMessageId
         self.updatedQts = state.state.state.updatedQts
@@ -968,6 +1040,9 @@ struct AccountFinalStateEvents {
         self.sentScheduledMessageIds = state.sentScheduledMessageIds
         self.reportMessageDelivery = state.reportMessageDelivery
         self.addedConferenceInvitationMessagesIds = state.addedConferenceInvitationMessagesIds
+        self.updatedStarGiftAuctionState = state.updatedStarGiftAuctionState
+        self.updatedStarGiftAuctionMyState = state.updatedStarGiftAuctionMyState
+        self.updatedEmojiGameInfo = state.updatedEmojiGameInfo
     }
     
     func union(with other: AccountFinalStateEvents) -> AccountFinalStateEvents {
@@ -1016,16 +1091,18 @@ struct AccountFinalStateEvents {
             updatedCalls: self.updatedCalls + other.updatedCalls,
             addedCallSignalingData: self.addedCallSignalingData + other.addedCallSignalingData,
             updatedGroupCallParticipants: self.updatedGroupCallParticipants + other.updatedGroupCallParticipants,
+            groupCallMessageUpdates: self.groupCallMessageUpdates + other.groupCallMessageUpdates,
             storyUpdates: self.storyUpdates + other.storyUpdates,
             isContactUpdates: self.isContactUpdates + other.isContactUpdates,
             displayAlerts: self.displayAlerts + other.displayAlerts,
             dismissBotWebViews: self.dismissBotWebViews + other.dismissBotWebViews,
+            joinChatWebViewDecisions: self.joinChatWebViewDecisions + other.joinChatWebViewDecisions,
             delayNotificatonsUntil: delayNotificatonsUntil,
             updatedMaxMessageId: updatedMaxMessageId,
             updatedQts: updatedQts,
             externallyUpdatedPeerId: externallyUpdatedPeerId,
             authorizationListUpdated: authorizationListUpdated,
-            updatedIncomingThreadReadStates: self.updatedIncomingThreadReadStates.merging(other.updatedIncomingThreadReadStates,uniquingKeysWith: { lhs, _ in lhs }),
+            updatedIncomingThreadReadStates: self.updatedIncomingThreadReadStates.merging(other.updatedIncomingThreadReadStates, uniquingKeysWith: { lhs, _ in lhs }),
             updateConfig: updateConfig,
             isPremiumUpdated: isPremiumUpdated,
             updatedStarsBalance: self.updatedStarsBalance.merging(other.updatedStarsBalance, uniquingKeysWith: { lhs, _ in lhs }),
@@ -1033,7 +1110,10 @@ struct AccountFinalStateEvents {
             updatedStarsRevenueStatus: self.updatedStarsRevenueStatus.merging(other.updatedStarsRevenueStatus, uniquingKeysWith: { lhs, _ in lhs }),
             sentScheduledMessageIds: sentScheduledMessageIds,
             reportMessageDelivery: reportMessageDelivery,
-            addedConferenceInvitationMessagesIds: addedConferenceInvitationMessagesIds
+            addedConferenceInvitationMessagesIds: addedConferenceInvitationMessagesIds,
+            updatedStarGiftAuctionState: self.updatedStarGiftAuctionState.merging(other.updatedStarGiftAuctionState, uniquingKeysWith: { lhs, _ in lhs }),
+            updatedStarGiftAuctionMyState: self.updatedStarGiftAuctionMyState.merging(other.updatedStarGiftAuctionMyState, uniquingKeysWith: { lhs, _ in lhs }),
+            updatedEmojiGameInfo: self.updatedEmojiGameInfo
         )
     }
 }
