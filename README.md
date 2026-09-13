@@ -1,3 +1,11 @@
+# Telegram iOS 11.15 + Articles backport
+
+This branch (`article-backport-11.15`) is official Telegram-iOS 11.15 with the **Articles** (rich text) feature backported from public 12.9.2 / IPA 12.9.3. See `docs/ARTICLES_BACKPORT.md`.
+
+Unsigned IPA: GitHub Actions workflow `.github/workflows/build.yml` → artifact `Telegram-11.15-articles-unsigned.ipa`.
+
+---
+
 # Telegram iOS Source Code Compilation Guide
 
 We welcome all developers to use our API and source code to create applications on our platform.
