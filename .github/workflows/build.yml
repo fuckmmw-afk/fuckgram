@@ -63,19 +63,7 @@ jobs:
           for f in bazel-out/applebin_ios-ios_arm*-opt-ST-*/bin/Telegram/Telegram.ipa; do
             cp "$f" "$OUTPUT_PATH/Telegram-11.15-articles-unsigned.ipa"
           done
-          python3 - <<'PY'
-import json, os, datetime
-meta = {
-    "source_sha": os.environ.get("SOURCE_SHA"),
-    "app_version": os.environ.get("APP_VERSION"),
-    "build_number": os.environ.get("BUILD_NUMBER"),
-    "api_layer": os.environ.get("LAYER"),
-    "built_at": datetime.datetime.utcnow().isoformat() + "Z",
-    "signing": "unsigned / fake-codesigning",
-}
-open("build/artifacts/build-metadata.json", "w").write(json.dumps(meta, indent=2) + "\n")
-print(meta)
-PY
+          python3 -c 'import json,os,datetime; open("build/artifacts/build-metadata.json","w").write(json.dumps({"source_sha":os.environ.get("SOURCE_SHA"),"app_version":os.environ.get("APP_VERSION"),"build_number":os.environ.get("BUILD_NUMBER"),"api_layer":os.environ.get("LAYER"),"built_at":datetime.datetime.utcnow().isoformat()+"Z","signing":"unsigned / fake-codesigning"}, indent=2)+"\n")'
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
