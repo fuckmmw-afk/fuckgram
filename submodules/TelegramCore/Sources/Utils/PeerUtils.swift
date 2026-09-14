@@ -379,7 +379,7 @@ public extension Peer {
     
     var hasCustomNameColor: Bool {
         let defaultNameColor = PeerNameColor(rawValue: Int32(self.id.id._internalGetInt64Value() % 7))
-        if self.nameColor != .preset(defaultNameColor) {
+        if self.nameColor != defaultNameColor {
             return true
         }
         return false
