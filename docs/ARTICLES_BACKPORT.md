@@ -40,6 +40,6 @@
 
 ## Build
 
-GitHub Actions on `article-backport-11.15` produces **unsigned** `Telegram-11.15-articles-unsigned.ipa` via official `fake-codesigning` + `--disableProvisioningProfiles`. macOS 15 / Xcode 16.2. Not installable on stock iOS without a later signature.
+GitHub Actions on `article-backport-11.15` produces **unsigned** `Telegram-11.15-articles-unsigned.ipa` via official `fake-codesigning` profiles (ExpirationDate 2029). Device IPA **must** keep those profiles attached: `--disableProvisioningProfiles` makes `rules_apple` fail with `provisioning_profile` unset (Build #7). Runner: macOS 15 / Xcode 16.4 (16.2 on `macos-15` has no iPhoneOS SDK). Not installable on stock iOS without a later signature.
 
 Metadata written next to the IPA: source SHA, build date, layer 228.

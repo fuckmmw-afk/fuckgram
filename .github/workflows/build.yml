@@ -51,6 +51,74 @@ jobs:
           xcodebuild -showsdks
           df -h
 
+      - name: Prefetch Bazel archives
+        run: |
+          set -euo pipefail
+          # Bazel dies on a single GitHub 500 while fetching MODULE deps
+          # (Build #8: protobuf-29.0.zip). curl retries 500s; --distdir then
+          # lets Bazel use the local file instead of hitting GitHub again.
+          DISTDIR="$GITHUB_WORKSPACE/build-input/bazel-distdir"
+          mkdir -p "$DISTDIR"
+
+          prefetch() {
+            local dest="$DISTDIR/$1"
+            local sha="$2"
+            shift 2
+            if [ -f "$dest" ]; then
+              if [ -n "$sha" ]; then
+                echo "$sha  $dest" | shasum -a 256 -c -
+              fi
+              echo "have $(basename "$dest")"
+              return 0
+            fi
+            local url tmp
+            tmp="$dest.tmp"
+            for url in "$@"; do
+              echo "GET $url"
+              rm -f "$tmp"
+              if curl --retry 12 --retry-all-errors --retry-delay 3 --retry-max-time 180 \
+                   --connect-timeout 20 --fail --location --show-error \
+                   --output "$tmp" "$url"; then
+                if [ -n "$sha" ]; then
+                  echo "$sha  $tmp" | shasum -a 256 -c -
+                fi
+                mv "$tmp" "$dest"
+                ls -lh "$dest"
+                return 0
+              fi
+              rm -f "$tmp"
+            done
+            echo "WARN: could not prefetch $(basename "$dest"); Bazel will retry during the build"
+            return 0
+          }
+
+          prefetch protobuf-29.0.zip \
+            2e442d21839ec9dbafda4cc9083239aa04e78fc9c27dfa59b5374e968050cd22 \
+            https://mirror.bazel.build/github.com/protocolbuffers/protobuf/releases/download/v29.0/protobuf-29.0.zip \
+            https://github.com/protocolbuffers/protobuf/releases/download/v29.0/protobuf-29.0.zip
+
+          prefetch cmake-3.23.1-macos-universal.tar.gz \
+            f794ed92ccb4e9b6619a77328f313497d7decf8fb7e047ba35a348b838e0e1e2 \
+            https://github.com/Kitware/CMake/releases/download/v3.23.1/cmake-3.23.1-macos-universal.tar.gz
+
+          prefetch meson-1.6.0.tar.gz \
+            999b65f21c03541cf11365489c1fad22e2418bb0c3d50ca61139f2eec09d5496 \
+            https://github.com/mesonbuild/meson/releases/download/1.6.0/meson-1.6.0.tar.gz
+
+          prefetch ninja-mac.zip \
+            89a287444b5b3e98f88a945afa50ce937b8ffd1dcc59c555ad9b1baf855298c9 \
+            https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-mac.zip
+
+          prefetch v24.12.23.zip \
+            c5cd6a605ff20350c7faa19d8eeb599df6117ea4aabd16ac58a7eb5ba82df4e7 \
+            https://github.com/google/flatbuffers/archive/refs/tags/v24.12.23.zip
+
+          # --distdir is a client/common option, not a startup option.
+          printf 'common --distdir=%s\ncommon --http_connector_attempts=12\n' "$DISTDIR" \
+            > "$GITHUB_WORKSPACE/user.bazelrc"
+          echo "wrote user.bazelrc:"
+          cat "$GITHUB_WORKSPACE/user.bazelrc"
+
       - name: Build unsigned app
         run: |
           set -euo pipefail
@@ -67,14 +135,44 @@ jobs:
           echo "SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
           python3 build-system/Make/ImportCertificates.py --path build-system/fake-codesigning/certs
-          python3 -u build-system/Make/Make.py \
-            --overrideXcodeVersion \
-            build \
-            --configurationPath="build-system/appstore-configuration.json" \
-            --codesigningInformationPath=build-system/fake-codesigning \
-            --configuration=release_arm64 \
-            --buildNumber="$BUILD_NUMBER" \
-            --outputBuildArtifactsPath="build/artifacts"
+
+          # Do not pass --disableProvisioningProfiles: rules_apple then sets
+          # provisioning_profile=None and fails device IPA analysis (Build #7).
+          mkdir -p build/logs
+          attempt=1
+          max_attempts=4
+          while true; do
+            log="build/logs/make-attempt-${attempt}.log"
+            echo "Make.py attempt ${attempt}/${max_attempts}"
+            start=$(date +%s)
+            set +e
+            python3 -u build-system/Make/Make.py \
+              --overrideXcodeVersion \
+              build \
+              --configurationPath="build-system/appstore-configuration.json" \
+              --codesigningInformationPath=build-system/fake-codesigning \
+              --configuration=release_arm64 \
+              --buildNumber="$BUILD_NUMBER" \
+              --outputBuildArtifactsPath="build/artifacts" \
+              2>&1 | tee "$log"
+            status=${PIPESTATUS[0]}
+            set -e
+            elapsed=$(( $(date +%s) - start ))
+            if [ "$status" -eq 0 ]; then
+              break
+            fi
+            if [ "$attempt" -ge "$max_attempts" ] || [ "$elapsed" -ge 180 ]; then
+              echo "Make.py failed after ${elapsed}s (attempt ${attempt}); not retrying"
+              exit "$status"
+            fi
+            if ! grep -Eqi 'Error downloading|GET returned 50[0-9]|502 Bad Gateway|503 Service|connection reset|Unknown host|timed out' "$log"; then
+              echo "Make.py failed after ${elapsed}s with a non-fetch error; not retrying"
+              exit "$status"
+            fi
+            echo "Make.py hit a fetch flake after ${elapsed}s; retry ${attempt}/${max_attempts}"
+            attempt=$((attempt + 1))
+            sleep $((attempt * 15))
+          done
 
           test -f build/artifacts/Telegram.ipa
           cp build/artifacts/Telegram.ipa build/artifacts/Telegram-11.15-articles-unsigned.ipa
