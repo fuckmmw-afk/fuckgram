@@ -289,7 +289,7 @@ private func saveIncomingMediaControllerEntries(presentationData: PresentationDa
             switch exceptionPeer {
             case .user, .secretChat:
                 peerTypeValue = .privateChats
-            case .legacyGroup:
+            case .legacyGroup, .community:
                 peerTypeValue = .groups
             case let .channel(channel):
                 if case .broadcast = channel.info {
@@ -743,4 +743,3 @@ func saveIncomingMediaController(context: AccountContext, scope: SaveIncomingMed
     
     return controller
 }
-

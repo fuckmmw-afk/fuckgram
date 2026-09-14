@@ -87,7 +87,7 @@ private final class DownloadedMediaStoreContext {
                         peerTypeValue = .users
                     case .secretChat:
                         return false
-                    case .legacyGroup:
+                    case .legacyGroup, .community:
                         peerTypeValue = .groups
                     case let .channel(channel):
                         if channel.flags.contains(.copyProtectionEnabled) {

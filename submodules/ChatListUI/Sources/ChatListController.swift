@@ -1763,7 +1763,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                                 switch peer {
                                 case .user, .secretChat:
                                     globalValue = globalSettings.privateChats
-                                case .legacyGroup:
+                                case .legacyGroup, .community:
                                     globalValue = globalSettings.groupChats
                                 case let .channel(channel):
                                     if case .broadcast = channel.info {
