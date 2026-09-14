@@ -668,6 +668,8 @@ def build(bazel, arguments):
     bazel_command_line.set_continue_on_error(arguments.continueOnError)
     bazel_command_line.set_show_actions(arguments.showActions)
     bazel_command_line.set_enable_sandbox(arguments.sandbox)
+    if getattr(arguments, 'disableProvisioningProfiles', False):
+        bazel_command_line.set_disable_provisioning_profiles()
 
     bazel_command_line.set_split_swiftmodules(arguments.enableParallelSwiftmoduleGeneration)
 
