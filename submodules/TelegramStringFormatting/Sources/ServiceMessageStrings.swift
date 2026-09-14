@@ -1575,6 +1575,12 @@ public func universalServiceMessageString(presentationData: (PresentationTheme, 
                         attributedString = addAttributesToStringWithRanges(strings.Notification_StarsGift_Sent(authorName, price)._tuple, body: bodyAttributes, argumentAttributes: attributes)
                     }
                 }
+            case .suggestedBirthday, .starGiftPurchaseOffer, .starGiftPurchaseOfferDeclined, .groupCreatorChange, .copyProtectionToggle, .copyProtectionRequest, .managedBotCreated, .pollOptionAppended, .pollOptionDeleted, .communityChanged:
+                // These layer 228 service actions are unrelated to Articles and
+                // have no presentation in the 11.15 interface. Keep the legacy
+                // formatter's behavior for unsupported actions instead of
+                // importing their 12.9 UI and localization surface.
+                attributedString = nil
             case .unknown:
                 attributedString = nil
             }

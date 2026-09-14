@@ -133,11 +133,12 @@ jobs:
             c5cd6a605ff20350c7faa19d8eeb599df6117ea4aabd16ac58a7eb5ba82df4e7 \
             https://github.com/google/flatbuffers/archive/refs/tags/v24.12.23.zip
 
-          # --distdir is a client/common option, not a startup option.
+          # --distdir is a client/common option, not a startup option. Bazel
+          # automatically reads .bazelrc; a sibling user.bazelrc is ignored.
           printf 'common --distdir=%s\ncommon --disk_cache=%s\ncommon --http_connector_attempts=12\nbuild --keep_going\n' "$DISTDIR" "$GITHUB_WORKSPACE/.bazel-disk-cache" \
-            > "$GITHUB_WORKSPACE/user.bazelrc"
-          echo "wrote user.bazelrc:"
-          cat "$GITHUB_WORKSPACE/user.bazelrc"
+            >> "$GITHUB_WORKSPACE/.bazelrc"
+          echo "appended CI options to .bazelrc:"
+          tail -n 4 "$GITHUB_WORKSPACE/.bazelrc"
 
       - name: Build unsigned app
         run: |
