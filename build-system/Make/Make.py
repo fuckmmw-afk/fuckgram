@@ -1038,6 +1038,12 @@ if __name__ == '__main__':
         help='Continue build process after an error.',
     )
     buildParser.add_argument(
+        '--disableProvisioningProfiles',
+        action='store_true',
+        default=False,
+        help='Build without provisioning profiles (unsigned packaging).',
+    )
+    buildParser.add_argument(
         '--showActions',
         action='store_true',
         default=False,

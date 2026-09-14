@@ -54,6 +54,7 @@ jobs:
             --codesigningInformationPath=build-system/fake-codesigning \
             --configuration=release_arm64 \
             --buildNumber="$BUILD_NUMBER" \
+            --disableProvisioningProfiles \
             --outputBuildArtifactsPath="build/artifacts"
 
           test -f build/artifacts/Telegram.ipa
