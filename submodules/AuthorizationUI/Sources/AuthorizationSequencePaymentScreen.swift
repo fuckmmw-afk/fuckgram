@@ -103,7 +103,7 @@ final class AuthorizationSequencePaymentScreenComponent: Component {
             self.state?.updated()
             
             let (currency, amount) = storeProduct.priceCurrencyAndAmount
-            let purpose: AppStoreTransactionPurpose = .authCode(restore: false, phoneNumber: component.phoneNumber, phoneCodeHash: component.phoneCodeHash, currency: currency, amount: amount)
+            let purpose: AppStoreTransactionPurpose = .authCode(restore: false, phoneNumber: component.phoneNumber, phoneCodeHash: component.phoneCodeHash, premiumDays: component.premiumDays, currency: currency, amount: amount)
             let _ = (component.engine.payments.canPurchasePremium(purpose: purpose)
             |> deliverOnMainQueue).start(next: { [weak self] available in
                 guard let self else {

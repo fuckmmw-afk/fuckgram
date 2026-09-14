@@ -158,6 +158,19 @@ jobs:
 
           python3 build-system/Make/ImportCertificates.py --path build-system/fake-codesigning/certs
 
+          # The checked-in profiles carry Telegram's production certificate.
+          # Rebuild their verification copies around the imported self-signed
+          # certificate so rules_apple can resolve a matching local identity.
+          VERIFICATION_PROFILES="$RUNNER_TEMP/telegram-verification-profiles"
+          python3 build-system/Make/Make.py \
+            --overrideXcodeVersion \
+            generate-verification-profiles \
+            --configurationPath="build-system/appstore-configuration.json" \
+            --codesigningInformationPath=build-system/fake-codesigning \
+            --destination="$VERIFICATION_PROFILES"
+          cp "$VERIFICATION_PROFILES"/*.mobileprovision build-system/fake-codesigning/profiles/
+          security find-identity -v -p codesigning temp.keychain
+
           # Do not pass --disableProvisioningProfiles: rules_apple then sets
           # provisioning_profile=None and fails device IPA analysis (Build #7).
           mkdir -p build/logs
