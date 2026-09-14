@@ -62,7 +62,12 @@ public extension TelegramEngine {
             return _internal_searchGifs(account: self.account, query: query, nextOffset: nextOffset)
         }
 
-        public func addStickerPackInteractively(info: StickerPackCollectionInfo, items: [StickerPackItem], positionInList: Int? = nil, noDelay: Bool = false) -> Signal<AddStickerPackResult, NoError> {
+        public func addStickerPackInteractively(info: StickerPackCollectionInfo, items: [StickerPackItem], positionInList: Int? = nil) -> Signal<Void, NoError> {
+            return _internal_addStickerPackInteractively(postbox: self.account.postbox, info: info, items: items, positionInList: positionInList, noDelay: false)
+            |> map { _ in }
+        }
+
+        public func addStickerPackInteractively(info: StickerPackCollectionInfo, items: [StickerPackItem], positionInList: Int? = nil, noDelay: Bool) -> Signal<AddStickerPackResult, NoError> {
             return _internal_addStickerPackInteractively(postbox: self.account.postbox, info: info, items: items, positionInList: positionInList, noDelay: noDelay)
         }
 
@@ -88,6 +93,10 @@ public extension TelegramEngine {
         
         public func uploadSticker(peer: EnginePeer, resource: EngineMediaResource, thumbnail: EngineMediaResource?, alt: String, dimensions: PixelDimensions, duration: Double?, mimeType: String) -> Signal<UploadStickerStatus, UploadStickerError> {
             return _internal_uploadSticker(account: self.account, peer: peer._asPeer(), resource: resource._asResource(), thumbnail: thumbnail?._asResource(), alt: alt, dimensions: dimensions, duration: duration, mimeType: mimeType)
+        }
+
+        public func uploadSticker(peer: Peer, resource: MediaResource, thumbnail: MediaResource?, alt: String, dimensions: PixelDimensions, duration: Double?, mimeType: String) -> Signal<UploadStickerStatus, UploadStickerError> {
+            return _internal_uploadSticker(account: self.account, peer: peer, resource: resource, thumbnail: thumbnail, alt: alt, dimensions: dimensions, duration: duration, mimeType: mimeType)
         }
         
         public func createStickerSet(title: String, shortName: String, stickers: [ImportSticker], thumbnail: ImportSticker?, type: CreateStickerSetType, software: String?) -> Signal<CreateStickerSetStatus, CreateStickerSetError> {

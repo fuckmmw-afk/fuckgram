@@ -141,11 +141,8 @@ public extension TelegramEngine {
             return _internal_searchHashtagPosts(account: self.account, hashtag: hashtag, state: state, limit: limit)
         }
 
-        public func downloadMessage(messageId: EngineMessage.Id) -> Signal<EngineMessage?, NoError> {
+        public func downloadMessage(messageId: MessageId) -> Signal<Message?, NoError> {
             return _internal_downloadMessage(accountPeerId: self.account.peerId, postbox: self.account.postbox, network: self.account.network, messageId: messageId)
-            |> map { message -> EngineMessage? in
-                return message.flatMap(EngineMessage.init)
-            }
         }
 
         public func searchMessageIdByTimestamp(peerId: PeerId, threadId: Int64?, timestamp: Int32) -> Signal<MessageId?, NoError> {
@@ -485,11 +482,8 @@ public extension TelegramEngine {
             return _internal_recentlyUsedHashtags(postbox: self.account.postbox)
         }
 
-        public func topPeerActiveLiveLocationMessages(peerId: EnginePeer.Id) -> Signal<(EnginePeer?, [EngineMessage]), NoError> {
+        public func topPeerActiveLiveLocationMessages(peerId: PeerId) -> Signal<(Peer?, [Message]), NoError> {
             return _internal_topPeerActiveLiveLocationMessages(viewTracker: self.account.viewTracker, accountPeerId: self.account.peerId, peerId: peerId)
-            |> map { peer, messages -> (EnginePeer?, [EngineMessage]) in
-                return (peer.flatMap(EnginePeer.init), messages.map(EngineMessage.init))
-            }
         }
 
         public func chatList(group: EngineChatList.Group, count: Int) -> Signal<EngineChatList, NoError> {
@@ -1555,7 +1549,7 @@ public extension TelegramEngine {
             }
         }
         
-        public func uploadStory(target: Stories.PendingTarget, media: EngineStoryInputMedia, mediaAreas: [MediaArea], text: String, entities: [MessageTextEntity], pin: Bool, privacy: EngineStoryPrivacy, isForwardingDisabled: Bool, period: Int, randomId: Int64, forwardInfo: Stories.PendingForwardInfo?, folders: [Int64],  music: TelegramMediaFile?, uploadInfo: StoryUploadInfo? = nil) -> Signal<Int32, NoError> {
+        public func uploadStory(target: Stories.PendingTarget, media: EngineStoryInputMedia, mediaAreas: [MediaArea], text: String, entities: [MessageTextEntity], pin: Bool, privacy: EngineStoryPrivacy, isForwardingDisabled: Bool, period: Int, randomId: Int64, forwardInfo: Stories.PendingForwardInfo?, folders: [Int64], music: TelegramMediaFile? = nil, uploadInfo: StoryUploadInfo? = nil) -> Signal<Int32, NoError> {
             return _internal_uploadStory(account: self.account, target: target, media: media, mediaAreas: mediaAreas, text: text, entities: entities, pin: pin, privacy: privacy, isForwardingDisabled: isForwardingDisabled, period: period, randomId: randomId, forwardInfo: forwardInfo, folders: folders, music: music, uploadInfo: uploadInfo)
         }
         

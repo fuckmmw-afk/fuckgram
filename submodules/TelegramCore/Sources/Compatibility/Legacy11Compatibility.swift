@@ -2,6 +2,8 @@ import Foundation
 import Postbox
 import SwiftSignalKit
 
+public typealias ChannelOwnershipTransferError = ChatOwnershipTransferError
+
 // Compatibility accessors retained for Telegram 11.15 presentation modules.
 // The layer-228 core stores chat themes as a richer enum that can also contain
 // collectible gifts; the legacy UI only understands emoticon themes.

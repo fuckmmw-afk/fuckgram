@@ -251,9 +251,8 @@ public extension TelegramEngine {
             }
         }
 
-        public func updatedRemotePeer(peer: PeerReference) -> Signal<EnginePeer, UpdatedRemotePeerError> {
+        public func updatedRemotePeer(peer: PeerReference) -> Signal<Peer, UpdatedRemotePeerError> {
             return _internal_updatedRemotePeer(accountPeerId: self.account.peerId, postbox: self.account.postbox, network: self.account.network, peer: peer)
-            |> map(EnginePeer.init)
         }
 
         public func chatOnlineMembers(peerId: PeerId) -> Signal<Int32, NoError> {
@@ -545,6 +544,10 @@ public extension TelegramEngine {
             return _internal_updateChatOwnership(account: self.account, peerId: peerId, memberId: memberId, password: password)
         }
 
+        public func updateChannelOwnership(channelId: PeerId, memberId: PeerId, password: String) -> Signal<[(ChannelParticipant?, RenderedChannelParticipant)], ChannelOwnershipTransferError> {
+            return _internal_updateChatOwnership(account: self.account, peerId: channelId, memberId: memberId, password: password)
+        }
+
         public func searchGroupMembers(peerId: PeerId, query: String) -> Signal<[EnginePeer], NoError> {
             return _internal_searchGroupMembers(postbox: self.account.postbox, network: self.account.network, accountPeerId: self.account.peerId, peerId: peerId, query: query)
             |> map { peers -> [EnginePeer] in
@@ -588,8 +591,16 @@ public extension TelegramEngine {
             return _internal_updateGroupSpecificEmojiset(postbox: self.account.postbox, network: self.account.network, peerId: peerId, info: info)
         }
 
-        public func joinChannel(peerId: PeerId, hash: String?) -> Signal<JoinChannelResult, JoinChannelError> {
+        public func joinChannel(peerId: PeerId, hash: String?) -> Signal<RenderedChannelParticipant?, JoinChannelError> {
             return _internal_joinChannel(account: self.account, peerId: peerId, hash: hash)
+            |> map { result -> RenderedChannelParticipant? in
+                switch result {
+                case let .joined(participant):
+                    return participant
+                case .webView:
+                    return nil
+                }
+            }
         }
 
         public func removePeerMember(peerId: PeerId, memberId: PeerId) -> Signal<Void, NoError> {
@@ -752,18 +763,16 @@ public extension TelegramEngine {
             return _internal_removeRecentlyUsedApp(account: self.account, peerId: peerId)
         }
 
-        public func uploadedPeerPhoto(resource: EngineMediaResource) -> Signal<UploadedPeerPhotoData, NoError> {
-            return _internal_uploadedPeerPhoto(postbox: self.account.postbox, network: self.account.network, resource: resource._asResource())
+        public func uploadedPeerPhoto(resource: MediaResource) -> Signal<UploadedPeerPhotoData, NoError> {
+            return _internal_uploadedPeerPhoto(postbox: self.account.postbox, network: self.account.network, resource: resource)
         }
 
-        public func uploadedPeerVideo(resource: EngineMediaResource) -> Signal<UploadedPeerPhotoData, NoError> {
-            return _internal_uploadedPeerVideo(postbox: self.account.postbox, network: self.account.network, messageMediaPreuploadManager: self.account.messageMediaPreuploadManager, resource: resource._asResource())
+        public func uploadedPeerVideo(resource: MediaResource) -> Signal<UploadedPeerPhotoData, NoError> {
+            return _internal_uploadedPeerVideo(postbox: self.account.postbox, network: self.account.network, messageMediaPreuploadManager: self.account.messageMediaPreuploadManager, resource: resource)
         }
 
-        public func updatePeerPhoto(peerId: PeerId, photo: Signal<UploadedPeerPhotoData, NoError>?, video: Signal<UploadedPeerPhotoData?, NoError>? = nil, videoStartTimestamp: Double? = nil, markup: UploadPeerPhotoMarkup? = nil, mapResourceToAvatarSizes: @escaping (EngineMediaResource, [TelegramMediaImageRepresentation]) -> Signal<[Int: Data], NoError>) -> Signal<UpdatePeerPhotoStatus, UploadPeerPhotoError> {
-            return _internal_updatePeerPhoto(postbox: self.account.postbox, network: self.account.network, stateManager: self.account.stateManager, accountPeerId: self.account.peerId, peerId: peerId, photo: photo, video: video, videoStartTimestamp: videoStartTimestamp, markup: markup, mapResourceToAvatarSizes: { rawResource, representations in
-                return mapResourceToAvatarSizes(EngineMediaResource(rawResource), representations)
-            })
+        public func updatePeerPhoto(peerId: PeerId, photo: Signal<UploadedPeerPhotoData, NoError>?, video: Signal<UploadedPeerPhotoData?, NoError>? = nil, videoStartTimestamp: Double? = nil, markup: UploadPeerPhotoMarkup? = nil, mapResourceToAvatarSizes: @escaping (MediaResource, [TelegramMediaImageRepresentation]) -> Signal<[Int: Data], NoError>) -> Signal<UpdatePeerPhotoStatus, UploadPeerPhotoError> {
+            return _internal_updatePeerPhoto(postbox: self.account.postbox, network: self.account.network, stateManager: self.account.stateManager, accountPeerId: self.account.peerId, peerId: peerId, photo: photo, video: video, videoStartTimestamp: videoStartTimestamp, markup: markup, mapResourceToAvatarSizes: mapResourceToAvatarSizes)
         }
 
         public func requestUpdateChatListFilter(id: Int32, filter: ChatListFilter?) -> Signal<Never, RequestUpdateChatListFilterError> {
@@ -893,25 +902,22 @@ public extension TelegramEngine {
             }
         }
 
-        public func joinChatInteractively(with hash: String) -> Signal<JoinLinkResult, JoinLinkError> {
+        public func joinChatInteractively(with hash: String) -> Signal<EnginePeer?, JoinLinkError> {
             let account = self.account
             return _internal_joinChatInteractively(with: hash, account: self.account)
-            |> mapToSignal { result -> Signal<JoinLinkResult, JoinLinkError> in
+            |> mapToSignal { result -> Signal<EnginePeer?, JoinLinkError> in
                 let id: PeerId?
                 switch result {
                 case let .joined(peerId):
                     id = peerId
-                case let .webView(webView):
-                    return .single(.webView(webView))
+                case .webView:
+                    return .single(nil)
                 }
                 guard let id = id else {
-                    return .single(.joined(nil))
+                    return .single(nil)
                 }
                 return account.postbox.transaction { transaction -> EnginePeer? in
                     return transaction.getPeer(id).flatMap(EnginePeer.init)
-                }
-                |> map { peer -> JoinLinkResult in
-                    return .joined(peer)
                 }
                 |> castError(JoinLinkError.self)
             }

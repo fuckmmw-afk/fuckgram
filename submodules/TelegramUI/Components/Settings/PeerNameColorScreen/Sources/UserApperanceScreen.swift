@@ -314,12 +314,12 @@ final class UserAppearanceScreenComponent: Component {
             let nameColor: PeerNameColor
             if let updatedPeerNameColor = self.updatedPeerNameColor {
                 nameColor = updatedPeerNameColor
-            } else if let peerNameColor = peer.nameColor {
+            } else if let peerNameColor = peer.nameColor?.legacyPreset {
                 nameColor = peerNameColor
             } else {
                 nameColor = .blue
             }
-            if nameColor != peer.nameColor {
+            if nameColor != peer.nameColor?.legacyPreset {
                 changes.insert(.nameColor)
             }
             
