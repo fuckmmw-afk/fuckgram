@@ -32,7 +32,7 @@
 - Global Liquid Glass UI, 12.9 `TelegramUIFramework` binary, full `AttachmentUI` 12.9, Assets.car / lproj from 12.9.
 - Injected dylibs, stories/gifts/ads/calls unrelated deltas.
 - Native rich composer as the default chat input (11.15 input panel kept). Article authoring is the attachment-menu editor. `ChatRichTextInputNode` is in-tree for a later panel hook.
-- People Nearby engine was restored against layer 228 `Cons_*` constructors; live nearby updates from `AccountStateManager` are not re-streamed.
+- People Nearby engine was restored against layer 228 `Cons_*` constructors; live nearby updates from `AccountStateManager` are not re-streamed. `PreferencesKeys.peersNearby` (value 21) is kept from 11.15 because 12.9.2 dropped the public key while Core still writes it.
 
 ## Feature flag
 
