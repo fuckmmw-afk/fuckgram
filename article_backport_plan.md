@@ -39,6 +39,12 @@
   `RichTextAttachmentScreen` и `Chat/Attach Menu/Article` найдены по
   смещениям 72 319 440 и 75 021 248; в соответствующем binary
   11.15 обе строки отсутствуют.
+- В 11.15 уже есть Objective-C metadata `TGRichText*` старого Instant
+  View, поэтому один общий substring `RichText` не является доказательством
+  новой функции. В 12.9.3 дополнительно видны Swift metadata
+  `RichTextMessageAttribute`, `requestFullRichText`,
+  `ChatRichTextEditorComposer` и `RichTextAttachmentScreen`; именно эта
+  связка сопоставляется с официальным source graph.
 - В обеих исследованных IPA присутствуют сторонние инжектированные dylib. В
   12.9.3 это, среди прочего, `Lead.dylib`, `zxPluginsInject.dylib` и несколько
   tweak-dylib; в 11.15 — `TGExtra.framework` и tweak-dylib. Они не являются
@@ -175,6 +181,10 @@
    параметр `richMessage` — в `Api42.swift`.
 2. Зарегистрировать `RichTextMessageAttribute` в `AccountManager` и обеспечить
    Postbox encoding/decoding InstantPage и вложенных media.
+   Реальный codec хранит обязательный `instantPage` и optional
+   `fullInstantPage`; отдельные composer drafts используют
+   `Namespaces.CachedItemCollection.richTextComposerDrafts = 55` и ключ
+   peer/thread, не перезаписывая обычный draft 11.15.
 3. Обновить StoreMessage parsing, pending outgoing message, standalone send,
    edit и update-resource logic. Обычные сообщения обязаны продолжать идти по
    прежнему пути с `richText: nil`.
