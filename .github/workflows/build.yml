@@ -19,16 +19,37 @@ jobs:
       - name: Select Xcode
         run: |
           set -euo pipefail
-          XCODE_VERSION=$(python3 -c 'import json; print(json.load(open("versions.json"))["xcode"])')
-          echo "versions.json xcode=$XCODE_VERSION"
-          ls /Applications | grep -i xcode || true
-          if [ -d "/Applications/Xcode_${XCODE_VERSION}.app" ]; then
-            sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer"
-          else
-            echo "Xcode_${XCODE_VERSION}.app not installed; using runner default"
-          fi
+          echo "Available Xcode apps:"
+          ls -d /Applications/Xcode*.app || true
+          pick_xcode() {
+            local app sdk
+            # Prefer a 16.x toolchain with a real iPhoneOS SDK; Xcode 16.2 on
+            # macos-15 is present but missing the iOS 18.2 platform.
+            for app in \
+              /Applications/Xcode_16.4.app \
+              /Applications/Xcode_16.3.app \
+              /Applications/Xcode_16.2.app \
+              /Applications/Xcode_26.1.1.app \
+              /Applications/Xcode_26.0.1.app \
+              /Applications/Xcode_26.0.app \
+              /Applications/Xcode.app
+            do
+              [ -d "$app" ] || continue
+              sdk=$(ls -d "$app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS"*.sdk 2>/dev/null | head -1 || true)
+              if [ -n "${sdk:-}" ]; then
+                echo "Using $app"
+                echo "SDK $sdk"
+                sudo xcode-select -s "$app/Contents/Developer"
+                return 0
+              fi
+              echo "Skipping $app (no iPhoneOS SDK)"
+            done
+            return 1
+          }
+          pick_xcode
           xcode-select -p
           xcodebuild -version
+          xcodebuild -showsdks
           df -h
 
       - name: Build unsigned app
