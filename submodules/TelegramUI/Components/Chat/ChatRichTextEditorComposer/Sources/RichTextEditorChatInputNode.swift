@@ -19,7 +19,7 @@ import TelegramPresentationData
 private final class HostChecklistCheckboxView: UIView, RichTextChecklistMarkerView {
     private let checkNode: CheckNode
     init(theme: CheckNodeTheme, checked: Bool) {
-        self.checkNode = CheckNode(theme: theme, content: .check(isRectangle: true))
+        self.checkNode = CheckNode(theme: theme, content: .check)
         super.init(frame: .zero)
         self.checkNode.isUserInteractionEnabled = false
         self.addSubview(self.checkNode.view)
@@ -209,8 +209,8 @@ public final class RichTextEditorChatInputNode: ASDisplayNode, ChatRichTextInput
         // returns true to insert a newline, false when it sent the message). Without this a hardware Return
         // just inserted a paragraph break and never sent — the legacy backend wired this via
         // ChatInputTextViewImpl's own \r keyCommand; the native editor surfaces it as onHardwareReturn.
-        self.editorView.onHardwareReturn = { [weak self] modifierFlags in
-            return self?.storedDelegate?.chatInputTextNodeShouldReturn(modifierFlags: modifierFlags) ?? true
+        self.editorView.onHardwareReturn = { [weak self] _ in
+            return self?.storedDelegate?.chatInputTextNodeShouldReturn() ?? true
         }
 
         self.editorView.onChange = { [weak self] in

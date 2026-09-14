@@ -33,7 +33,7 @@ import UndoUI
 private final class HostChecklistCheckboxView: UIView, RichTextChecklistMarkerView {
     private let checkNode: CheckNode
     init(theme: CheckNodeTheme, checked: Bool) {
-        self.checkNode = CheckNode(theme: theme, content: .check(isRectangle: true))
+        self.checkNode = CheckNode(theme: theme, content: .check)
         super.init(frame: .zero)
         self.checkNode.isUserInteractionEnabled = false
         self.addSubview(self.checkNode.view)
@@ -631,7 +631,7 @@ final class RichTextAttachmentScreenComponent: Component {
             })))
 
             let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
-            let contextController = makeContextController(
+            let contextController = ContextController(
                 presentationData: presentationData,
                 source: .reference(RichTextActionContextReferenceSource(sourceView: sourceView)),
                 items: .single(ContextController.Items(content: .list(items))),
@@ -885,7 +885,7 @@ final class RichTextAttachmentScreenComponent: Component {
             })))
             
             let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
-            let contextController = makeContextController(
+            let contextController = ContextController(
                 presentationData: presentationData,
                 source: .reference(RichTextActionContextReferenceSource(sourceView: sourceView)),
                 items: .single(ContextController.Items(content: .list(items))),
@@ -897,7 +897,7 @@ final class RichTextAttachmentScreenComponent: Component {
         private func presentActionMenu(from sourceView: UIView, items: [ContextMenuItem]) {
             guard let component = self.component else { return }
             let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
-            let controller = makeContextController(
+            let controller = ContextController(
                 presentationData: presentationData,
                 source: .reference(RichTextActionContextReferenceSource(sourceView: sourceView)),
                 items: .single(ContextController.Items(content: .list(items))),

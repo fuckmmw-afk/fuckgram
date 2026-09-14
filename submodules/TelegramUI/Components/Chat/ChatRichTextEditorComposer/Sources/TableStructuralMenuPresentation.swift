@@ -62,7 +62,7 @@ public func presentTableStructuralMenu(
         ))
     })
 
-    let controller = makeContextController(
+    let controller = ContextController(
         presentationData: presentationData,
         source: .reference(RichTextStructuralMenuReferenceSource(sourceView: anchor)),
         items: .single(ContextController.Items(content: .list(items))),

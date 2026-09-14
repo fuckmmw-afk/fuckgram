@@ -19,7 +19,7 @@ public func presentMediaControlMenu(
     presentationData: PresentationData,
     present: (ViewController) -> Void
 ) {
-    let controller = makeContextController(
+    let controller = ContextController(
         presentationData: presentationData,
         source: .reference(MediaControlMenuReferenceSource(sourceView: anchorView)),
         items: .single(ContextController.Items(content: .list(items))),
