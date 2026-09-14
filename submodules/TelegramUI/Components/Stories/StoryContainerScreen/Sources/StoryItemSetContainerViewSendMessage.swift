@@ -2662,7 +2662,7 @@ final class StoryItemSetContainerSendMessage {
                         attributes.append(NotificationInfoMessageAttribute(flags: .muted))
                     }
                     if let scheduleTime = scheduleTime {
-                         attributes.append(OutgoingScheduleInfoMessageAttribute(scheduleTime: scheduleTime))
+                         attributes.append(OutgoingScheduleInfoMessageAttribute(scheduleTime: scheduleTime, repeatPeriod: nil))
                     }
                 }
                 var messageAttributes: [MessageAttribute] = []

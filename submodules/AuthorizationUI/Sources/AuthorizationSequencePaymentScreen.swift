@@ -34,6 +34,7 @@ final class AuthorizationSequencePaymentScreenComponent: Component {
     let phoneNumber: String
     let phoneCodeHash: String
     let storeProduct: String
+    let premiumDays: Int32
     
     init(
         sharedContext: SharedAccountContext,
@@ -42,7 +43,8 @@ final class AuthorizationSequencePaymentScreenComponent: Component {
         presentationData: PresentationData,
         phoneNumber: String,
         phoneCodeHash: String,
-        storeProduct: String
+        storeProduct: String,
+        premiumDays: Int32
     ) {
         self.sharedContext = sharedContext
         self.engine = engine
@@ -51,10 +53,14 @@ final class AuthorizationSequencePaymentScreenComponent: Component {
         self.phoneNumber = phoneNumber
         self.phoneCodeHash = phoneCodeHash
         self.storeProduct = storeProduct
+        self.premiumDays = premiumDays
     }
 
     static func ==(lhs: AuthorizationSequencePaymentScreenComponent, rhs: AuthorizationSequencePaymentScreenComponent) -> Bool {
         if lhs.storeProduct != rhs.storeProduct {
+            return false
+        }
+        if lhs.premiumDays != rhs.premiumDays {
             return false
         }
         return true
@@ -377,6 +383,7 @@ public final class AuthorizationSequencePaymentScreen: ViewControllerComponentCo
         phoneNumber: String,
         phoneCodeHash: String,
         storeProduct: String,
+        premiumDays: Int32,
         back: @escaping () -> Void
     ) {
         super.init(component: AuthorizationSequencePaymentScreenComponent(
@@ -386,7 +393,8 @@ public final class AuthorizationSequencePaymentScreen: ViewControllerComponentCo
             presentationData: presentationData,
             phoneNumber: phoneNumber,
             phoneCodeHash: phoneCodeHash,
-            storeProduct: storeProduct
+            storeProduct: storeProduct,
+            premiumDays: premiumDays
         ), navigationBarAppearance: .transparent, theme: .default, updatedPresentationData: (initial: presentationData, signal: .single(presentationData)))
         
         loadServerCountryCodes(accountManager: sharedContext.accountManager, engine: engine, completion: { [weak self] in

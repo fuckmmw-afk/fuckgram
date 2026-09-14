@@ -767,8 +767,8 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         return controller
     }
     
-    private func paymentController(number: String, phoneCodeHash: String, storeProduct: String) -> AuthorizationSequencePaymentScreen {
-        let controller = AuthorizationSequencePaymentScreen(sharedContext: self.sharedContext, engine: self.engine, presentationData: self.presentationData, inAppPurchaseManager: self.inAppPurchaseManager, phoneNumber: number, phoneCodeHash: phoneCodeHash, storeProduct: storeProduct, back: { [weak self] in
+    private func paymentController(number: String, phoneCodeHash: String, storeProduct: String, premiumDays: Int32) -> AuthorizationSequencePaymentScreen {
+        let controller = AuthorizationSequencePaymentScreen(sharedContext: self.sharedContext, engine: self.engine, presentationData: self.presentationData, inAppPurchaseManager: self.inAppPurchaseManager, phoneNumber: number, phoneCodeHash: phoneCodeHash, storeProduct: storeProduct, premiumDays: premiumDays, back: { [weak self] in
             guard let self else {
                 return
             }
@@ -1305,12 +1305,12 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                     }
                     controllers.append(self.signUpController(firstName: firstName, lastName: lastName, termsOfService: termsOfService, displayCancel: displayCancel))
                     self.setViewControllers(controllers, animated: !self.viewControllers.isEmpty)
-                case let .payment(number, codeHash, storeProduct, _):
+                case let .payment(number, codeHash, storeProduct, premiumDays, _, _, _):
                     var controllers: [ViewController] = []
                     if !self.otherAccountPhoneNumbers.1.isEmpty {
                         controllers.append(self.splashController())
                     }
-                    controllers.append(self.paymentController(number: number, phoneCodeHash: codeHash, storeProduct: storeProduct))
+                    controllers.append(self.paymentController(number: number, phoneCodeHash: codeHash, storeProduct: storeProduct, premiumDays: premiumDays))
                     self.setViewControllers(controllers, animated: !self.viewControllers.isEmpty)
             }
         }
