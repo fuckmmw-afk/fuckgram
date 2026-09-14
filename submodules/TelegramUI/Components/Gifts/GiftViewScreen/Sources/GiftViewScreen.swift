@@ -225,7 +225,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                                 
                                 for attribute in attributes {
                                     switch attribute {
-                                    case let .model(_, file, _):
+                                    case let .model(_, file, _, _):
                                         self.sampleDisposable.add(freeMediaFileResourceInteractiveFetched(account: self.context.account, userLocation: .other, fileReference: .standalone(media: file), resource: file.resource).start())
                                     case let .pattern(_, file, _):
                                         self.sampleDisposable.add(freeMediaFileResourceInteractiveFetched(account: self.context.account, userLocation: .other, fileReference: .standalone(media: file), resource: file.resource).start())
@@ -252,7 +252,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                             
                             for attribute in attributes {
                                 switch attribute {
-                                case let .model(_, file, _):
+                                case let .model(_, file, _, _):
                                     self.sampleDisposable.add(freeMediaFileResourceInteractiveFetched(account: self.context.account, userLocation: .other, fileReference: .standalone(media: file), resource: file.resource).start())
                                 case let .pattern(_, file, _):
                                     self.sampleDisposable.add(freeMediaFileResourceInteractiveFetched(account: self.context.account, userLocation: .other, fileReference: .standalone(media: file), resource: file.resource).start())
@@ -473,7 +473,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                 animationFile = gift.file
             case let .unique(gift):
                 for attribute in gift.attributes {
-                    if case let .model(_, file, _) = attribute {
+                    if case let .model(_, file, _, _) = attribute {
                         animationFile = file
                         break
                     }
@@ -1351,7 +1351,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                             
                             var animationFile: TelegramMediaFile?
                             for attribute in uniqueGift.attributes {
-                                if case let .model(_, file, _) = attribute {
+                                if case let .model(_, file, _, _) = attribute {
                                     animationFile = file
                                     break
                                 }
@@ -2798,7 +2798,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                                     if state.pendingWear {
                                         var fileId: Int64?
                                         for attribute in uniqueGift.attributes {
-                                            if case let .model(_, file, _) = attribute {
+                                            if case let .model(_, file, _, _) = attribute {
                                                 fileId = file.fileId.id
                                             }
                                             if case let .backdrop(_, _, innerColor, _, _, _, _) = attribute {
@@ -3166,17 +3166,17 @@ private final class GiftViewSheetContent: CombinedComponent {
                             var otherValuesAndPercentages: [(value: String, percentage: Float)] = []
                             
                             switch attribute {
-                            case let .model(name, _, rarity):
+                            case let .model(name, _, rarity, _):
                                 id = "model"
                                 title = strings.Gift_Unique_Model
                                 value = NSAttributedString(string: name, font: tableFont, textColor: tableTextColor)
-                                percentage = Float(rarity) * 0.1
+                                percentage = Float(rarity.permilleValue) * 0.1
                                 tag = state.modelButtonTag
                                 
                                 if state.justUpgraded, let sampleAttributes = state.sampleGiftAttributes {
                                     for sampleAttribute in sampleAttributes {
-                                        if case let .model(name, _, rarity) = sampleAttribute {
-                                            otherValuesAndPercentages.append((name, Float(rarity) * 0.1))
+                                        if case let .model(name, _, rarity, _) = sampleAttribute {
+                                            otherValuesAndPercentages.append((name, Float(rarity.permilleValue) * 0.1))
                                         }
                                     }
                                 }
@@ -3184,13 +3184,13 @@ private final class GiftViewSheetContent: CombinedComponent {
                                 id = "backdrop"
                                 title = strings.Gift_Unique_Backdrop
                                 value = NSAttributedString(string: name, font: tableFont, textColor: tableTextColor)
-                                percentage = Float(rarity) * 0.1
+                                percentage = Float(rarity.permilleValue) * 0.1
                                 tag = state.backdropButtonTag
                                 
                                 if state.justUpgraded, let sampleAttributes = state.sampleGiftAttributes {
                                     for sampleAttribute in sampleAttributes {
                                         if case let .backdrop(name, _, _, _, _, _, rarity) = sampleAttribute {
-                                            otherValuesAndPercentages.append((name, Float(rarity) * 0.1))
+                                            otherValuesAndPercentages.append((name, Float(rarity.permilleValue) * 0.1))
                                         }
                                     }
                                 }
@@ -3198,13 +3198,13 @@ private final class GiftViewSheetContent: CombinedComponent {
                                 id = "pattern"
                                 title = strings.Gift_Unique_Symbol
                                 value = NSAttributedString(string: name, font: tableFont, textColor: tableTextColor)
-                                percentage = Float(rarity) * 0.1
+                                percentage = Float(rarity.permilleValue) * 0.1
                                 tag = state.symbolButtonTag
                                 
                                 if state.justUpgraded, let sampleAttributes = state.sampleGiftAttributes {
                                     for sampleAttribute in sampleAttributes {
                                         if case let .pattern(name, _, rarity) = sampleAttribute {
-                                            otherValuesAndPercentages.append((name, Float(rarity) * 0.1))
+                                            otherValuesAndPercentages.append((name, Float(rarity.permilleValue) * 0.1))
                                         }
                                     }
                                 }

@@ -130,7 +130,7 @@ private final class GiftsTabItemComponent: Component {
                             file = gift.file
                         case let .unique(gift):
                             for attribute in gift.attributes {
-                                if case let .model(_, fileValue, _) = attribute {
+                                if case let .model(_, fileValue, _, _) = attribute {
                                     file = fileValue
                                 }
                             }
@@ -271,7 +271,7 @@ final class PeerInfoPaneTabsContainerPaneNode: ASDisplayNode {
                         file = gift.file
                     case let .unique(gift):
                         for attribute in gift.attributes {
-                            if case let .model(_, fileValue, _) = attribute {
+                            if case let .model(_, fileValue, _, _) = attribute {
                                 file = fileValue
                             }
                         }
