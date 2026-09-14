@@ -11,65 +11,62 @@ jobs:
     timeout-minutes: 360
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
-          fetch-depth: 0
+          fetch-depth: 1
 
-      - name: Set active Xcode path
+      - name: Select Xcode
         run: |
+          set -euo pipefail
           XCODE_VERSION=$(python3 -c 'import json; print(json.load(open("versions.json"))["xcode"])')
-          echo "Using Xcode $XCODE_VERSION"
-          sudo xcode-select -s /Applications/Xcode_$XCODE_VERSION.app/Contents/Developer
+          echo "versions.json xcode=$XCODE_VERSION"
+          ls /Applications | grep -i xcode || true
+          if [ -d "/Applications/Xcode_${XCODE_VERSION}.app" ]; then
+            sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer"
+          else
+            echo "Xcode_${XCODE_VERSION}.app not installed; using runner default"
+          fi
+          xcode-select -p
           xcodebuild -version
-
-      - name: Create canonical source directory
-        run: |
-          set -x
-          sudo mkdir -p /Users/Shared
-          cp -R "$GITHUB_WORKSPACE" /Users/Shared/
-          mv /Users/Shared/$(basename "$GITHUB_WORKSPACE") /Users/Shared/telegram-ios
+          df -h
 
       - name: Build unsigned app
         run: |
-          set -x
-          SOURCE_DIR=/Users/Shared/telegram-ios
-          BAZEL_USER_ROOT="/private/var/tmp/_bazel_containerhost"
+          set -euo pipefail
+          SOURCE_DIR="$GITHUB_WORKSPACE"
           cd "$SOURCE_DIR"
 
           BUILD_NUMBER_OFFSET="$(cat build_number_offset)"
           export APP_VERSION=$(python3 -c 'import json; print(json.load(open("versions.json"))["app"])')
           export COMMIT_COUNT=$(git rev-list --count HEAD)
           export BUILD_NUMBER="$((COMMIT_COUNT + BUILD_NUMBER_OFFSET))"
-          export LAYER=$(python3 -c 'print("228")')
           echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
           echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
-          echo "LAYER=$LAYER" >> "$GITHUB_ENV"
+          echo "LAYER=228" >> "$GITHUB_ENV"
           echo "SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
           python3 build-system/Make/ImportCertificates.py --path build-system/fake-codesigning/certs
           python3 -u build-system/Make/Make.py \
-            --bazelUserRoot="$BAZEL_USER_ROOT" \
+            --overrideXcodeVersion \
             build \
             --configurationPath="build-system/appstore-configuration.json" \
             --codesigningInformationPath=build-system/fake-codesigning \
             --configuration=release_arm64 \
             --buildNumber="$BUILD_NUMBER" \
-            --disableProvisioningProfiles
+            --outputBuildArtifactsPath="build/artifacts"
 
-          OUTPUT_PATH="build/artifacts"
-          rm -rf "$OUTPUT_PATH"
-          mkdir -p "$OUTPUT_PATH"
-          for f in bazel-out/applebin_ios-ios_arm*-opt-ST-*/bin/Telegram/Telegram.ipa; do
-            cp "$f" "$OUTPUT_PATH/Telegram-11.15-articles-unsigned.ipa"
-          done
-          python3 -c 'import json,os,datetime; open("build/artifacts/build-metadata.json","w").write(json.dumps({"source_sha":os.environ.get("SOURCE_SHA"),"app_version":os.environ.get("APP_VERSION"),"build_number":os.environ.get("BUILD_NUMBER"),"api_layer":os.environ.get("LAYER"),"built_at":datetime.datetime.utcnow().isoformat()+"Z","signing":"unsigned / fake-codesigning"}, indent=2)+"\n")'
+          test -f build/artifacts/Telegram.ipa
+          cp build/artifacts/Telegram.ipa build/artifacts/Telegram-11.15-articles-unsigned.ipa
+          python3 -c 'import json,os,datetime; open("build/artifacts/build-metadata.json","w").write(json.dumps({"source_sha":os.environ.get("SOURCE_SHA"),"app_version":os.environ.get("APP_VERSION"),"build_number":os.environ.get("BUILD_NUMBER"),"api_layer":"228","built_at":datetime.datetime.utcnow().isoformat()+"Z","signing":"unsigned / fake-codesigning"}, indent=2)+"\n")'
+          ls -lh build/artifacts
+          df -h
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: Telegram-11.15-articles-unsigned
           path: |
-            /Users/Shared/telegram-ios/build/artifacts/Telegram-11.15-articles-unsigned.ipa
-            /Users/Shared/telegram-ios/build/artifacts/build-metadata.json
+            build/artifacts/Telegram-11.15-articles-unsigned.ipa
+            build/artifacts/build-metadata.json
           if-no-files-found: error
