@@ -2757,7 +2757,11 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                                                 }
                                             })
                                             
-                                            strongSelf.messageActionUrlAuthDisposable.set(((strongSelf.context.engine.messages.acceptMessageActionUrlAuth(subject: subject, allowWriteAccess: allowWriteAccess) |> afterDisposed {
+                                            strongSelf.messageActionUrlAuthDisposable.set(((strongSelf.context.engine.messages.acceptMessageActionUrlAuth(subject: subject, allowWriteAccess: allowWriteAccess, sharePhoneNumber: false)
+                                            |> `catch` { _ -> Signal<MessageActionUrlAuthResult, NoError> in
+                                                return .single(.default)
+                                            }
+                                            |> afterDisposed {
                                                 Queue.mainQueue().async {
                                                     if let strongSelf = self {
                                                         strongSelf.updateChatPresentationInterfaceState(animated: true, interactive: true, {

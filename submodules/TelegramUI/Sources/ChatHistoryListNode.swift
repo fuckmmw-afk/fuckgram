@@ -965,7 +965,7 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
                 return
             }
             if strongSelf.canReadHistoryValue && !strongSelf.suspendReadingReactions && !strongSelf.context.sharedContext.immediateExperimentalUISettings.skipReadHistory {
-                strongSelf.context.account.viewTracker.updateMarkReactionsSeenForMessageIds(messageIds: Set(messageIds.map(\.messageId)))
+                strongSelf.context.account.viewTracker.updateMarkReactionsAndVotesSeenForMessageIds(messageIds: Set(messageIds.map(\.messageId)))
             } else {
                 strongSelf.messageIdsWithReactionsScheduledForMarkAsSeen.formUnion(messageIds.map(\.messageId))
             }
@@ -2444,7 +2444,7 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
             let _ = self.displayUnseenReactionAnimations(messageIds: Array(messageIds))
             
             self.messageIdsWithReactionsScheduledForMarkAsSeen.removeAll()
-            self.context.account.viewTracker.updateMarkReactionsSeenForMessageIds(messageIds: messageIds)
+            self.context.account.viewTracker.updateMarkReactionsAndVotesSeenForMessageIds(messageIds: messageIds)
         }
         
         if self.canReadHistoryValue {
@@ -4411,7 +4411,7 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
             } else if self.interactiveReadActionDisposable == nil {
                 if case let .peer(peerId) = self.chatLocation {
                     if !self.context.sharedContext.immediateExperimentalUISettings.skipReadHistory && !self.context.account.isSupportUser {
-                        self.interactiveReadActionDisposable = self.context.engine.messages.installInteractiveReadMessagesAction(peerId: peerId)
+                        self.interactiveReadActionDisposable = self.context.engine.messages.installInteractiveReadMessagesAction(peerId: peerId, threadId: self.chatLocation.threadId)
                     }
                 }
             }

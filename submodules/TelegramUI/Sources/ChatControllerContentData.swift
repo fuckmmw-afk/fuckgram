@@ -836,7 +836,7 @@ extension ChatControllerImpl {
                                 disallowedGifts = cachedData.disallowedGifts
                             }
                             
-                            if chatLocation.threadId == nil, case let .known(value) = cachedData.linkedBotChannelId, let value, chatLocation.peerId != value {
+                            if chatLocation.threadId == nil, let value = (peer as? TelegramUser)?.linkedCommunityId, chatLocation.peerId != value {
                                 strongSelf.state.historyNodeData = HistoryNodeData(
                                     chatLocation: .peer(id: value),
                                     chatLocationContextHolder: Atomic(value: nil)
@@ -2179,10 +2179,9 @@ extension ChatControllerImpl {
                 let chatLocationPeerId = chatLocation.peerId
                 
                 if let chatLocationPeerId = chatLocationPeerId {
-                    hasPendingMessages = context.account.pendingMessageManager.hasPendingMessages
-                    |> mapToSignal { peerIds -> Signal<Bool, NoError> in
-                        let value = peerIds.contains(chatLocationPeerId)
-                        if value {
+                    hasPendingMessages = context.account.pendingMessageManager.pendingMessageCount
+                    |> mapToSignal { pendingMessageCount -> Signal<Bool, NoError> in
+                        if let value = pendingMessageCount[chatLocationPeerId], value != 0 {
                             return .single(true)
                         } else {
                             return .single(false)

@@ -84,6 +84,10 @@ public func resolvedAreStoriesMuted(globalSettings: GlobalNotificationSettingsSe
     }
 }
 
+public func resolvedAreStoriesMuted(globalSettings: GlobalNotificationSettingsSet, peer: Peer, peerSettings: TelegramPeerNotificationSettings?, topSearchPeers: [PeerId]) -> Bool {
+    return resolvedAreStoriesMuted(globalSettings: globalSettings, peer: EnginePeer(peer), peerSettings: peerSettings, topSearchPeers: topSearchPeers)
+}
+
 func _internal_togglePeerStoriesMuted(account: Account, peerId: PeerId) -> Signal<Void, NoError> {
     return account.postbox.transaction { transaction -> Void in
         guard let peer = transaction.getPeer(peerId) else {

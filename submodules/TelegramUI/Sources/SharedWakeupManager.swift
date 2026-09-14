@@ -318,7 +318,7 @@ public final class SharedWakeupManager {
                 hasActiveCalls = true
                 break
             }
-            if tasks.importantTasks.contains(.pendingMessages) {
+            if tasks.importantTasks.pendingMessageCount != 0 {
                 hasPendingMessages = true
             }
         }

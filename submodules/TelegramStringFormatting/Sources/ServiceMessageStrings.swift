@@ -767,8 +767,8 @@ public func universalServiceMessageString(presentationData: (PresentationTheme, 
                 }
                 
                 attributedString = addAttributesToStringWithRanges(resultTitleString._tuple, body: bodyAttributes, argumentAttributes: peerMentionsAttributes(primaryTextColor: primaryTextColor, peerIds: attributePeerIds))
-            case let .setChatTheme(emoji):
-                if emoji.isEmpty {
+            case let .setChatTheme(chatTheme):
+                if chatTheme.isEmpty {
                     if message.author?.id.namespace == Namespaces.Peer.CloudChannel {
                         attributedString = NSAttributedString(string: strings.Notification_ChannelDisabledTheme, font: titleFont, textColor: primaryTextColor)
                     } else if message.author?.id == accountPeerId {
@@ -779,6 +779,13 @@ public func universalServiceMessageString(presentationData: (PresentationTheme, 
                         attributedString = addAttributesToStringWithRanges(resultTitleString._tuple, body: bodyAttributes, argumentAttributes: peerMentionsAttributes(primaryTextColor: primaryTextColor, peerIds: attributePeerIds))
                     }
                 } else {
+                    let emoji: String
+                    switch chatTheme {
+                    case let .emoticon(value):
+                        emoji = value
+                    case .gift:
+                        emoji = ""
+                    }
                     if message.author?.id.namespace == Namespaces.Peer.CloudChannel {
                         attributedString = NSAttributedString(string: strings.Notification_ChannelChangedTheme(emoji).string, font: titleFont, textColor: primaryTextColor)
                     } else if message.author?.id == accountPeerId {

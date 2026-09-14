@@ -8,6 +8,15 @@ public class ReplyMessageAttribute: MessageAttribute {
     public let quote: EngineMessageReplyQuote?
     public let isQuote: Bool
     public let innerSubject: EngineMessageReplyInnerSubject?
+
+    /// Compatibility view for Telegram 11.15 call sites.
+    public var todoItemId: Int32? {
+        if case let .todoItem(id) = self.innerSubject {
+            return id
+        } else {
+            return nil
+        }
+    }
     
     public var associatedMessageIds: [MessageId] {
         return [self.messageId]
@@ -19,6 +28,10 @@ public class ReplyMessageAttribute: MessageAttribute {
         self.quote = quote
         self.isQuote = isQuote
         self.innerSubject = innerSubject
+    }
+
+    public convenience init(messageId: MessageId, threadMessageId: MessageId?, quote: EngineMessageReplyQuote?, isQuote: Bool, todoItemId: Int32?) {
+        self.init(messageId: messageId, threadMessageId: threadMessageId, quote: quote, isQuote: isQuote, innerSubject: todoItemId.flatMap { .todoItem($0) })
     }
     
     required public init(decoder: PostboxDecoder) {

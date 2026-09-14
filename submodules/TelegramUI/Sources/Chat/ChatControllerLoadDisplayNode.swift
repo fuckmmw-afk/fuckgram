@@ -2187,7 +2187,7 @@ extension ChatControllerImpl {
                             let currentWebpagePreviewAttribute = currentMessage.webpagePreviewAttribute ?? WebpagePreviewMessageAttribute(leadingPreview: false, forceLargeMedia: nil, isManuallyAdded: true, isSafe: false)
                             
                             if currentMessage.text != text.string || currentEntities != entities || updatingMedia || webpagePreviewAttribute != currentWebpagePreviewAttribute || disableUrlPreview {
-                                strongSelf.context.account.pendingUpdateMessageManager.add(messageId: editMessage.messageId, text: text.string, media: media, entities: entitiesAttribute, inlineStickers: inlineStickers, webpagePreviewAttribute: webpagePreviewAttribute, invertMediaAttribute: invertedMediaAttribute, disableUrlPreview: disableUrlPreview)
+                                strongSelf.context.account.pendingUpdateMessageManager.add(messageId: editMessage.messageId, text: text.string, media: media, entities: entitiesAttribute, richText: nil, inlineStickers: inlineStickers, webpagePreviewAttribute: webpagePreviewAttribute, invertMediaAttribute: invertedMediaAttribute, disableUrlPreview: disableUrlPreview)
                             }
                         }
                         
@@ -4630,7 +4630,7 @@ extension ChatControllerImpl {
                     })
                 
                     self.chatUnreadMentionCountDisposable?.dispose()
-                    self.chatUnreadMentionCountDisposable = (self.context.account.viewTracker.unseenPersonalMessagesAndReactionCount(peerId: peerId, threadId: nil) |> deliverOnMainQueue).startStrict(next: { [weak self] mentionCount, reactionCount in
+                    self.chatUnreadMentionCountDisposable = (self.context.account.viewTracker.unseenPersonalMessagesAndReactionCount(peerId: peerId, threadId: nil) |> deliverOnMainQueue).startStrict(next: { [weak self] mentionCount, reactionCount, _ in
                         if let strongSelf = self {
                             if case .standard(.previewing) = strongSelf.presentationInterfaceState.mode {
                                 strongSelf.chatDisplayNode.navigateButtons.mentionCount = 0
@@ -4643,7 +4643,7 @@ extension ChatControllerImpl {
                     })
                 } else if let peerId = self.chatLocation.peerId, let threadId = self.chatLocation.threadId {
                     self.chatUnreadMentionCountDisposable?.dispose()
-                    self.chatUnreadMentionCountDisposable = (self.context.account.viewTracker.unseenPersonalMessagesAndReactionCount(peerId: peerId, threadId: threadId) |> deliverOnMainQueue).startStrict(next: { [weak self] mentionCount, reactionCount in
+                    self.chatUnreadMentionCountDisposable = (self.context.account.viewTracker.unseenPersonalMessagesAndReactionCount(peerId: peerId, threadId: threadId) |> deliverOnMainQueue).startStrict(next: { [weak self] mentionCount, reactionCount, _ in
                         if let strongSelf = self {
                             if case .standard(.previewing) = strongSelf.presentationInterfaceState.mode {
                                 strongSelf.chatDisplayNode.navigateButtons.mentionCount = 0
@@ -4803,7 +4803,14 @@ extension ChatControllerImpl {
                     }
                 }))
             
-                self.failedMessageEventsDisposable.set((self.context.account.pendingMessageManager.failedMessageEvents(peerId: peerId)
+                let isScheduledMessages: Bool
+                if case .scheduledMessages = self.presentationInterfaceState.subject {
+                    isScheduledMessages = true
+                } else {
+                    isScheduledMessages = false
+                }
+
+                self.failedMessageEventsDisposable.set((self.context.account.pendingMessageManager.failedMessageEvents(peerId: peerId, isScheduled: isScheduledMessages)
                 |> deliverOnMainQueue).startStrict(next: { [weak self] reason in
                     if let strongSelf = self, strongSelf.currentFailedMessagesAlertController == nil {
                         let text: String

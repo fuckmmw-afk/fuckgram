@@ -22,6 +22,10 @@ public func canSendMessagesToPeer(_ peer: EnginePeer, ignoreDefault: Bool = fals
     }
 }
 
+public func canSendMessagesToPeer(_ peer: Peer, ignoreDefault: Bool = false) -> Bool {
+    return canSendMessagesToPeer(EnginePeer(peer), ignoreDefault: ignoreDefault)
+}
+
 public func canSendReactionsToPeer(_ peer: EnginePeer, ignoreDefault: Bool = false) -> Bool {
     switch peer {
     case .user:

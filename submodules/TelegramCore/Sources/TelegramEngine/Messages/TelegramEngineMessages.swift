@@ -206,6 +206,11 @@ public extension TelegramEngine {
             return _internal_requestEditMessage(account: self.account, messageId: messageId, text: text, media: media, entities: entities, richText: richText, inlineStickers: inlineStickers, webpagePreviewAttribute: webpagePreviewAttribute, disableUrlPreview: disableUrlPreview, scheduleInfoAttribute: scheduleInfoAttribute, invertMediaAttribute: invertMediaAttribute)
         }
 
+        public func requestEditMessage(messageId: MessageId, text: String, media: RequestEditMessageMedia, entities: TextEntitiesMessageAttribute?, inlineStickers: [MediaId: Media], webpagePreviewAttribute: WebpagePreviewMessageAttribute? = nil, invertMediaAttribute: InvertMediaMessageAttribute? = nil, disableUrlPreview: Bool = false, scheduleTime: Int32? = nil) -> Signal<RequestEditMessageResult, RequestEditMessageError> {
+            let scheduleInfoAttribute = scheduleTime.flatMap { OutgoingScheduleInfoMessageAttribute(scheduleTime: $0, repeatPeriod: nil) }
+            return self.requestEditMessage(messageId: messageId, text: text, media: media, entities: entities, richText: nil, inlineStickers: inlineStickers, webpagePreviewAttribute: webpagePreviewAttribute, invertMediaAttribute: invertMediaAttribute, disableUrlPreview: disableUrlPreview, scheduleInfoAttribute: scheduleInfoAttribute)
+        }
+
         public func requestEditLiveLocation(messageId: MessageId, stop: Bool, coordinate: (latitude: Double, longitude: Double, accuracyRadius: Int32?)?, heading: Int32?, proximityNotificationRadius: Int32?, extendPeriod: Int32?) -> Signal<Void, NoError> {
             return _internal_requestEditLiveLocation(postbox: self.account.postbox, network: self.account.network, stateManager: self.account.stateManager, messageId: messageId, stop: stop, coordinate: coordinate, heading: heading, proximityNotificationRadius: proximityNotificationRadius, extendPeriod: extendPeriod)
         }

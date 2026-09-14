@@ -118,11 +118,25 @@ public struct EngineMessageReplySubject: Codable, Equatable {
     public var messageId: EngineMessage.Id
     public var quote: EngineMessageReplyQuote?
     public var innerSubject: EngineMessageReplyInnerSubject?
+
+    /// Compatibility view used by the 11.15 UI. Newer clients represent the
+    /// same value as one case of `innerSubject` so poll replies can coexist.
+    public var todoItemId: Int32? {
+        if case let .todoItem(id) = self.innerSubject {
+            return id
+        } else {
+            return nil
+        }
+    }
     
     public init(messageId: EngineMessage.Id, quote: EngineMessageReplyQuote?, innerSubject: EngineMessageReplyInnerSubject?) {
         self.messageId = messageId
         self.quote = quote
         self.innerSubject = innerSubject
+    }
+
+    public init(messageId: EngineMessage.Id, quote: EngineMessageReplyQuote?, todoItemId: Int32?) {
+        self.init(messageId: messageId, quote: quote, innerSubject: todoItemId.flatMap { .todoItem($0) })
     }
 }
 

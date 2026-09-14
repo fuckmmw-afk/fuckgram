@@ -121,6 +121,21 @@ public class PeerNameColors: Equatable {
             return PeerNameColors.defaultSingleColors[5]!
         }
     }
+
+    public func get(_ color: PeerColor, dark: Bool = false) -> Colors {
+        switch color {
+        case let .preset(value):
+            return self.get(value, dark: dark)
+        case let .collectible(value):
+            let colorValues = dark ? (value.darkColors ?? value.colors) : value.colors
+            if let colors = Colors(colors: colorValues.map { UIColor(rgb: $0) }) {
+                return colors
+            } else {
+                let accentColor = dark ? (value.darkAccentColor ?? value.accentColor) : value.accentColor
+                return Colors(main: UIColor(rgb: accentColor))
+            }
+        }
+    }
     
     public func getChatFolderTag(_ color: PeerNameColor, dark: Bool = false) -> Colors {
         if dark, let colors = self.darkColors[color.rawValue] {
