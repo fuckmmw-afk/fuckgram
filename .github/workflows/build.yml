@@ -28,7 +28,6 @@ jobs:
             for app in \
               /Applications/Xcode_16.4.app \
               /Applications/Xcode_16.3.app \
-              /Applications/Xcode_16.2.app \
               /Applications/Xcode_26.1.1.app \
               /Applications/Xcode_26.0.1.app \
               /Applications/Xcode_26.0.app \
@@ -36,13 +35,13 @@ jobs:
             do
               [ -d "$app" ] || continue
               sdk=$(ls -d "$app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS"*.sdk 2>/dev/null | head -1 || true)
-              if [ -n "${sdk:-}" ]; then
+              if [ -n "${sdk:-}" ] && [ -f "${sdk}/SDKSettings.plist" ]; then
                 echo "Using $app"
                 echo "SDK $sdk"
                 sudo xcode-select -s "$app/Contents/Developer"
                 return 0
               fi
-              echo "Skipping $app (no iPhoneOS SDK)"
+              echo "Skipping $app (no usable iPhoneOS SDK)"
             done
             return 1
           }
