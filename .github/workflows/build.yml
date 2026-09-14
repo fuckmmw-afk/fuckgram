@@ -51,6 +51,14 @@ jobs:
           xcodebuild -showsdks
           df -h
 
+      - name: Restore Bazel disk cache
+        uses: actions/cache@v4
+        with:
+          path: .bazel-disk-cache
+          key: bazel-disk-${{ runner.os }}-xcode-16.4-${{ hashFiles('MODULE.bazel', 'MODULE.bazel.lock', 'WORKSPACE') }}-${{ github.sha }}
+          restore-keys: |
+            bazel-disk-${{ runner.os }}-xcode-16.4-${{ hashFiles('MODULE.bazel', 'MODULE.bazel.lock', 'WORKSPACE') }}-
+
       - name: Prefetch Bazel archives
         run: |
           set -euo pipefail
@@ -114,7 +122,7 @@ jobs:
             https://github.com/google/flatbuffers/archive/refs/tags/v24.12.23.zip
 
           # --distdir is a client/common option, not a startup option.
-          printf 'common --distdir=%s\ncommon --http_connector_attempts=12\nbuild --keep_going\n' "$DISTDIR" \
+          printf 'common --distdir=%s\ncommon --disk_cache=%s\ncommon --http_connector_attempts=12\nbuild --keep_going\n' "$DISTDIR" "$GITHUB_WORKSPACE/.bazel-disk-cache" \
             > "$GITHUB_WORKSPACE/user.bazelrc"
           echo "wrote user.bazelrc:"
           cat "$GITHUB_WORKSPACE/user.bazelrc"
