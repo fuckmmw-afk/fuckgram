@@ -423,7 +423,7 @@ private class SimpleGlassView: UIView {
     private var params: Params?
     
     public override init(frame: CGRect) {
-        self.backgroundNode = NavigationBackgroundNode(color: .black, enableBlur: true, customBlurRadius: 8.0)
+        self.backgroundNode = NavigationBackgroundNode(color: .black, enableBlur: true)
         self.foregroundView = UIImageView()
         
         super.init(frame: frame)
