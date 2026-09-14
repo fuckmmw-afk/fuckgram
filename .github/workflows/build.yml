@@ -52,7 +52,8 @@ jobs:
           df -h
 
       - name: Restore Bazel disk cache
-        uses: actions/cache@v4
+        id: bazel-cache
+        uses: actions/cache/restore@v4
         with:
           path: .bazel-disk-cache
           key: bazel-disk-${{ runner.os }}-xcode-16.4-${{ hashFiles('MODULE.bazel', 'MODULE.bazel.lock', 'WORKSPACE') }}-${{ github.sha }}
@@ -137,10 +138,11 @@ jobs:
           export APP_VERSION=$(python3 -c 'import json; print(json.load(open("versions.json"))["app"])')
           export COMMIT_COUNT=$(git rev-list --count HEAD)
           export BUILD_NUMBER="$((COMMIT_COUNT + BUILD_NUMBER_OFFSET))"
+          export SOURCE_SHA=$(git rev-parse HEAD)
           echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
           echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
           echo "LAYER=228" >> "$GITHUB_ENV"
-          echo "SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "SOURCE_SHA=$SOURCE_SHA" >> "$GITHUB_ENV"
 
           python3 build-system/Make/ImportCertificates.py --path build-system/fake-codesigning/certs
 
@@ -187,6 +189,13 @@ jobs:
           python3 -c 'import json,os,datetime; open("build/artifacts/build-metadata.json","w").write(json.dumps({"source_sha":os.environ.get("SOURCE_SHA"),"app_version":os.environ.get("APP_VERSION"),"build_number":os.environ.get("BUILD_NUMBER"),"api_layer":"228","built_at":datetime.datetime.utcnow().isoformat()+"Z","signing":"unsigned / fake-codesigning"}, indent=2)+"\n")'
           ls -lh build/artifacts
           df -h
+
+      - name: Save Bazel disk cache
+        if: always() && steps.bazel-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .bazel-disk-cache
+          key: ${{ steps.bazel-cache.outputs.cache-primary-key }}
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4

@@ -1290,6 +1290,59 @@ public struct ComponentTransition {
             )
         }
     }
+
+    public func setBlur(layer: CALayer, radius: CGFloat, completion: ((Bool) -> Void)? = nil) {
+        var currentRadius: CGFloat = 0.0
+        if let currentFilters = layer.filters {
+            for filter in currentFilters {
+                if let filter = filter as? NSObject, filter.description.contains("gaussianBlur") {
+                    currentRadius = filter.value(forKey: "inputRadius") as? CGFloat ?? 0.0
+                }
+            }
+        }
+
+        if currentRadius == radius {
+            completion?(true)
+            return
+        }
+
+        if let blurFilter = CALayer.blur() {
+            blurFilter.setValue(radius as NSNumber, forKey: "inputRadius")
+            layer.filters = [blurFilter]
+            switch self.animation {
+            case .none:
+                completion?(true)
+            case let .curve(duration, curve):
+                layer.animate(from: currentRadius as NSNumber, to: radius as NSNumber, keyPath: "filters.gaussianBlur.inputRadius", duration: duration, delay: 0.0, curve: curve, removeOnCompletion: true, additive: false, completion: { [weak layer] flag in
+                    if let layer, radius <= 0.0 {
+                        layer.filters = nil
+                    }
+                    completion?(flag)
+                })
+            }
+        }
+    }
+
+    public func animateBlur(layer: CALayer, fromRadius: CGFloat, toRadius: CGFloat, delay: Double = 0.0, removeOnCompletion: Bool = true, completion: ((Bool) -> Void)? = nil) {
+        let duration: Double
+        switch self.animation {
+        case let .curve(durationValue, _):
+            duration = durationValue
+        case .none:
+            return
+        }
+
+        if let blurFilter = CALayer.blur() {
+            blurFilter.setValue(toRadius as NSNumber, forKey: "inputRadius")
+            layer.filters = [blurFilter]
+            layer.animate(from: fromRadius as NSNumber, to: toRadius as NSNumber, keyPath: "filters.gaussianBlur.inputRadius", timingFunction: CAMediaTimingFunctionName.easeOut.rawValue, duration: duration, delay: delay, removeOnCompletion: removeOnCompletion, completion: { [weak layer] flag in
+                if let layer, toRadius <= 0.0 {
+                    layer.filters = nil
+                }
+                completion?(flag)
+            })
+        }
+    }
     
     public func animateContentsImage(layer: CALayer, from fromImage: CGImage, to toImage: CGImage, duration: Double, curve: ComponentTransition.Animation.Curve, completion: ((Bool) -> Void)? = nil) {
         layer.animate(

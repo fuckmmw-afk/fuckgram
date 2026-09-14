@@ -17,22 +17,37 @@
 | `/root/fuckgram/siftgram_11.15.ipa` | `4476a8db3bc4c5d38ad54fcff38b3f1638cb507c97e8f830ece8d592536b5d1f` | `11.15 (242)`, `app.swiftgram.ios`, executable `Swiftgram`, iOS 13.0 |
 | `/root/fuckgram/telegram_12.9.3.ipa` | `f8c5f87571f1505579f4176c4c126f6a28e841ea20b877f80c1546025f18dfa4` | `12.9.3 (34622)`, `ph.telegra.Telegraph`, executable `Telegram`, iOS 13.0 |
 
-Обе IPA были распакованы и исследованы как ZIP/Mach-O. В обеих команда load
-commands показала `LC_ENCRYPTION_INFO_64 cryptid = 0`; то есть исследованные
-Mach-O не зашифрованы. При этом Swift-символы оптимизированной сборки не являются
+Обе IPA были распакованы и исследованы как ZIP/Mach-O. `LC_ENCRYPTION_INFO_64`
+показал `cryptid = 0` для обоих executable: у 11.15 `cryptoff = 81920`,
+`cryptsize = 4096`; у 12.9.3 `cryptoff = 65536`, `cryptsize = 16384`.
+Следовательно, исследованные Mach-O не зашифрованы. При этом Swift-символы
+оптимизированной сборки не являются
 эквивалентом исходному коду, поэтому выводы о реализации делаются только там,
 где они подтверждены строками/метаданными IPA и официальным исходным снимком.
 
 Наблюдаемые отличия IPA:
 
+- Несжатые размеры binary по zip directory отличаются: `TelegramUIFramework`
+  100 417 952 байт в 11.15 против 107 516 304 в 12.9.3;
+  `TelegramCoreFramework` — 18 479 888 против 20 835 904; Postbox —
+  4 085 984 против 3 901 968. Это доказывает, что binary не
+  идентичны; их нельзя считать взаимозаменяемыми без проверки API
+  и всего dependency graph.
 - В 12.9.3 внутри `TelegramUIFramework.framework` есть
   `RichTextEditorUIKitResources.bundle`, а в 11.15 такого bundle нет.
-- В 12.9.3 найдены метаданные/строки классов `RichTextAttachmentScreen` и путь
-  ресурса `Chat/Attach Menu/Article`; в 11.15 они отсутствуют.
+- В raw bytes `TelegramUIFramework` 12.9.3 строки
+  `RichTextAttachmentScreen` и `Chat/Attach Menu/Article` найдены по
+  смещениям 72 319 440 и 75 021 248; в соответствующем binary
+  11.15 обе строки отсутствуют.
 - В обеих исследованных IPA присутствуют сторонние инжектированные dylib. В
   12.9.3 это, среди прочего, `Lead.dylib`, `zxPluginsInject.dylib` и несколько
   tweak-dylib; в 11.15 — `TGExtra.framework` и tweak-dylib. Они не являются
   доказательством архитектуры Telegram и исключены из переноса.
+- `LC_LOAD_DYLIB` показывает у обоих основных app одинаковый штатный
+  dependency spine: MtProtoKit, SwiftSignalKit, Postbox, TelegramCore и
+  TelegramUI. `Lead`, `zxPluginsInject`, `TGExtra` и tweak-dylib загружаются
+  только main executable соответствующего repackaged IPA, а не
+  штатными Telegram framework.
 - Размеры и состав `TelegramUIFramework`, `TelegramCoreFramework`, Postbox и
   SwiftSignalKit различаются. Эти framework нельзя механически копировать:
   они собраны против разных моделей данных и UI-графов.
@@ -62,7 +77,8 @@ Mach-O не зашифрованы. При этом Swift-символы опт�
 5. **Отправка/редактирование.** `EnqueueMessage`, `PendingMessageManager`,
    `PendingMessageUploadedContent`, `StandaloneSendMessage` и
    `RequestEditMessage` распознают `RichTextMessageAttribute`, загружают вложенные
-   ресурсы и передают API `InputRichTextMessage`.
+   ресурсы и передают API `Api.InputRichMessage` через параметр `richMessage`
+   методов send/edit.
 6. **Получение и хранение.** `StoreMessage_Telegram.swift` разбирает API rich
    message; `SyncCore_RichTextMessageAttribute.swift` кодирует атрибут в Postbox;
    `AccountManager.swift` регистрирует его. `ApplyUpdateMessage.swift` обновляет
@@ -106,6 +122,10 @@ Mach-O не зашифрованы. При этом Swift-символы опт�
   включён; аварийное отключение через `UserDefaults["articles.enabled"]`.
 - `submodules/TelegramUI/Components/Chat/ChatMessageRichDataBubbleContentNode`.
 - InstantPage V2 additions в `submodules/InstantPageUI/Sources`.
+- Из ComponentFlow 12.9 нужны только helper-методы `setBlur` и
+  `animateBlur` в `submodules/ComponentFlow/Source/Base/Transition.swift`: их
+  вызывают article action bar, InstantPage renderer и локальные glass controls.
+  Весь современный ComponentFlow переносить не нужно.
 - Ресурс `TelegramUI/Images.xcassets/Chat/Attach Menu/Article.imageset`.
 
 ### Точки интеграции 11.15
@@ -119,6 +139,13 @@ Mach-O не зашифрованы. При этом Swift-символы опт�
 - `submodules/TelegramUI/Components/Chat/ChatTextInputPanelNode` и
   `ChatRichTextEditorComposer` нужны как conversion bridge, но native rich editor
   не должен становиться production-панелью обычного сообщения.
+
+Минимальность UI-интеграции проверена diff против baseline 11.15:
+`ChatControllerOpenAttachmentMenu.swift` имеет 11 добавленных строк,
+`ChatController.swift` — 5 добавленных и 1 удалённую. В старом
+`submodules/AttachmentUI` добавлено только 14 строк
+(`AttachmentController.swift`: 9, `AttachmentPanel.swift`: 5), без удалений
+и без замены контроллера 11.15 на версию 12.9.
 
 ## 4. Существенные различия 11.15 и 12.9.3
 
@@ -142,8 +169,10 @@ Mach-O не зашифрованы. При этом Swift-символы опт�
 ## 5. Telegram API, schema и storage
 
 1. Использовать один набор generated TelegramApi layer 228. Обязательные rich
-   constructors/methods должны проверяться по `Api0…Api42`, особенно
-   `messages.getRichMessage` и типы input/output rich message.
+   constructors/methods должны проверяться по `Api0…Api42`: registry
+   `InputRichMessage` находится в `Api0.swift`, его generated-модель — в
+   `Api13.swift`, `RichMessage` — в `Api24.swift`, а send/edit/get методы и
+   параметр `richMessage` — в `Api42.swift`.
 2. Зарегистрировать `RichTextMessageAttribute` в `AccountManager` и обеспечить
    Postbox encoding/decoding InstantPage и вложенных media.
 3. Обновить StoreMessage parsing, pending outgoing message, standalone send,
