@@ -497,6 +497,10 @@ public final class InlineStickerItemLayer: MultiAnimationRenderTarget {
             case .verification:
                 self.updateVerification()
                 self.updateTintColor()
+            case .dice:
+                // Dice-specific rendering belongs to the newer UI. The 11.15
+                // attachment view keeps its existing fallback behavior.
+                break
             }
         } else if let file = file {
             self.updateFile(file: file, attemptSynchronousLoad: attemptSynchronousLoad)

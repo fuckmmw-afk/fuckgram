@@ -158,6 +158,14 @@ jobs:
 
           python3 build-system/Make/ImportCertificates.py --path build-system/fake-codesigning/certs
 
+          # The bundled distribution identity is deliberately self-signed.
+          # Mark its public certificate as trusted for code signing so macOS
+          # reports the imported private key as a valid identity.
+          sudo security add-trusted-cert \
+            -d -r trustRoot -p codeSign \
+            -k temp.keychain \
+            build-system/fake-codesigning/certs/Public.cer
+
           # The checked-in profiles carry Telegram's production certificate.
           # Rebuild their verification copies around the imported self-signed
           # certificate so rules_apple can resolve a matching local identity.
@@ -169,7 +177,9 @@ jobs:
             --codesigningInformationPath=build-system/fake-codesigning \
             --destination="$VERIFICATION_PROFILES"
           cp "$VERIFICATION_PROFILES"/*.mobileprovision build-system/fake-codesigning/profiles/
-          security find-identity -v -p codesigning temp.keychain
+          IDENTITY_OUTPUT="$(security find-identity -v -p codesigning temp.keychain)"
+          printf '%s\n' "$IDENTITY_OUTPUT"
+          grep -Eq '[1-9][0-9]* valid identities found' <<< "$IDENTITY_OUTPUT"
 
           # Do not pass --disableProvisioningProfiles: rules_apple then sets
           # provisioning_profile=None and fails device IPA analysis (Build #7).
