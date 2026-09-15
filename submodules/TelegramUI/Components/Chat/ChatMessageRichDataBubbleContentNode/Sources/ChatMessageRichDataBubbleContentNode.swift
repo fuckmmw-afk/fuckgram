@@ -750,11 +750,11 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
                     if mediaStatusFrame != nil {
                         // Overlaid pill: reactions live outside the bubble. Inline reactions, if any,
                         // render inside the pill via reactionSettings — mirroring media messages.
-                        let inlineReactionSettings = shouldDisplayInlineDateReactions(message: EngineMessage(item.message), isPremium: item.associatedData.isPremium, forceInline: item.associatedData.forceInlineReactions) ? ChatMessageDateAndStatusNode.StandaloneReactionSettings() : nil
+                        let inlineReactionSettings = shouldDisplayInlineDateReactions(message: item.message, isPremium: item.associatedData.isPremium, forceInline: item.associatedData.forceInlineReactions) ? ChatMessageDateAndStatusNode.StandaloneReactionSettings() : nil
                         dateLayoutInput = .standalone(reactionSettings: item.presentationData.isPreview ? nil : inlineReactionSettings)
                     } else {
                         let trailingWidthToMeasure: CGFloat = lastTextLineFrame.map { $0.maxX - pageHorizontalInset } ?? 10000.0
-                        dateLayoutInput = .trailingContent(contentWidth: trailingWidthToMeasure, reactionSettings: ChatMessageDateAndStatusNode.TrailingReactionSettings(displayInline: shouldDisplayInlineDateReactions(message: EngineMessage(item.message), isPremium: item.associatedData.isPremium, forceInline: item.associatedData.forceInlineReactions), preferAdditionalInset: false))
+                        dateLayoutInput = .trailingContent(contentWidth: trailingWidthToMeasure, reactionSettings: ChatMessageDateAndStatusNode.TrailingReactionSettings(displayInline: shouldDisplayInlineDateReactions(message: item.message, isPremium: item.associatedData.isPremium, forceInline: item.associatedData.forceInlineReactions), preferAdditionalInset: false))
                     }
 
                     statusSuggestedWidthAndContinue = statusLayout(ChatMessageDateAndStatusNode.Arguments(
