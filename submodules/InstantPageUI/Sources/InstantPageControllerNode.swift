@@ -1548,30 +1548,15 @@ final class InstantPageControllerNode: ASDisplayNode, ASScrollViewDelegate {
                 let (canTranslate, language) = canTranslateText(context: context, text: text, showTranslate: translationSettings.showTranslate, showTranslateIfTopical: false, ignoredLanguages: translationSettings.ignoredLanguages)
                 if canTranslate {
                     actions.append(ContextMenuAction(content: .text(title: strings.Conversation_ContextMenuTranslate, accessibilityLabel: strings.Conversation_ContextMenuTranslate), action: { [weak self] in
-                        Task { @MainActor [weak self] in
-                            guard let self else {
-                                return
-                            }
-                            let controller = await context.sharedContext.makeTextProcessingScreen(
-                                context: context,
-                                theme: nil,
-                                mode: .translate(fromLanguage: language, applyResult: nil),
-                                inputText: .plain(text: text, entities: []),
-                                copyResult: { [weak self] text in
-                                    switch text {
-                                    case let .plain(value, entities):
-                                        storeMessageTextInPasteboard(value, entities: entities)
-                                    case let .rich(instantPage):
-                                        UIPasteboard.general.string = chatInputContent(fromInstantPage: instantPage).plainText
-                                    case .empty:
-                                        break
-                                    }
-                                    self?.present(UndoOverlayController(presentationData: presentationData, content: .copy(text: strings.Conversation_TextCopied), elevatedLayout: true, animateInAsReplacement: false, action: { _ in return false }), nil)
-                                },
-                                translateChat: nil
-                            )
-                            self.present(controller, nil)
+                        let controller = TranslateScreen(context: context, text: text, canCopy: true, fromLanguage: language, ignoredLanguages: translationSettings.ignoredLanguages)
+                        controller.pushController = { [weak self] c in
+                            (self?.controller?.navigationController as? NavigationController)?._keepModalDismissProgress = true
+                            self?.controller?.push(c)
                         }
+                        controller.presentController = { [weak self] c in
+                            self?.controller?.present(c, in: .window(.root))
+                        }
+                        self?.present(controller, nil)
                     }))
                 }
                 

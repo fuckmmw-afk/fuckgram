@@ -8091,6 +8091,9 @@ public final class MediaEditorScreenImpl: ViewController, MediaEditorScreen, UID
                 case .update:
                     result = MediaEditorScreenImpl.Result(media: .sticker(file: file, emoji: emojis))
                 case .upload, .send:
+                    guard let resource = resource._asResource() as? CloudDocumentMediaResource else {
+                        return
+                    }
                     let file = stickerFile(resource: resource, thumbnailResource: file.previewRepresentations.first?.resource, size: resource.size ?? 0, dimensions: dimensions, duration: self.preferredStickerDuration(), isVideo: isVideo)
                     result = MediaEditorScreenImpl.Result(media: .sticker(file: file, emoji: emojis))
                 default:
