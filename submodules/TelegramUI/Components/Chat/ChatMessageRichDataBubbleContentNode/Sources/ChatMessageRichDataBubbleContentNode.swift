@@ -965,7 +965,7 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
                             if self.displayContentsUnderSpoilers {
                                 pageView.setDisplayContentsUnderSpoilers(true, atLocation: nil, animated: false)
                             }
-                            let showTextAsPlaceholder = item.associatedData.showTextAsPlaceholder
+                            let showTextAsPlaceholder = false
                             var isTranslating = resolvedContent.isTranslating
                             if showTextAsPlaceholder {
                                 isTranslating = true
