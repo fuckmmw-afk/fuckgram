@@ -99,6 +99,10 @@ public final class ListTextFieldItemComponent: Component {
         public var currentText: String {
             return self.textField.text ?? ""
         }
+
+        public func activateInput() {
+            self.textField.becomeFirstResponder()
+        }
         
         public var customUpdateIsHighlighted: ((Bool) -> Void)?
         public private(set) var separatorInset: CGFloat = 0.0

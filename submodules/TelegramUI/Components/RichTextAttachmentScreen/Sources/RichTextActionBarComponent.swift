@@ -409,14 +409,14 @@ class ActionItemComponent: Component {
                 foregroundColor = component.theme.chat.inputPanel.panelControlColor.withMultipliedAlpha(component.action != nil ? 1.0 : 0.4)
             }
             
-            let iconImage = self.generateIconImage(name: component.icon, showsPremiumBadge: component.showsPremiumBadge)
+            let baseIconImage = self.generateIconImage(name: component.icon, showsPremiumBadge: component.showsPremiumBadge)
+            let iconImage = component.flipHorizontally ? baseIconImage?.withHorizontallyFlippedOrientation() : baseIconImage
             let iconSize = self.icon.update(
                 transition: transition,
                 component: AnyComponent(Image(
                     image: iconImage,
                     tintColor: foregroundColor,
-                    size: iconImage?.size ?? .zero,
-                    flipHorizontally: component.flipHorizontally
+                    size: iconImage?.size ?? .zero
                 )),
                 environment: {},
                 containerSize: availableSize

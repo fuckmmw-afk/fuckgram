@@ -352,7 +352,7 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
                 if let lastBlock = page.blocks.last, richDataBlockEndsWithVisualMedia(lastBlock) {
                     let reactions = mergedMessageReactions(attributes: item.message.attributes, isTags: item.message.areReactionsTags(accountPeerId: item.context.account.peerId))
                     let hasReactions = !(reactions?.reactions.isEmpty ?? true)
-                    let inline = shouldDisplayInlineDateReactions(message: EngineMessage(item.message), isPremium: item.associatedData.isPremium, forceInline: item.associatedData.forceInlineReactions)
+                    let inline = shouldDisplayInlineDateReactions(message: item.message, isPremium: item.associatedData.isPremium, forceInline: item.associatedData.forceInlineReactions)
                     wantsReactionsOutside = hasReactions && !inline
                 }
             }
@@ -1038,7 +1038,7 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
                             if self.relativeDateTimer?.period != formattedDateUpdatePeriod {
                                 self.relativeDateTimer?.timer.invalidate()
                                 let timer = SwiftSignalKit.Timer(timeout: Double(formattedDateUpdatePeriod), repeat: true, completion: { [weak self] in
-                                    self?.requestFullUpdate?(ControlledTransition(duration: 0.15, curve: .easeInOut, interactive: false))
+                                    self?.requestFullUpdate?()
                                 }, queue: Queue.mainQueue())
                                 self.relativeDateTimer = (timer, formattedDateUpdatePeriod)
                                 timer.start()
@@ -1153,7 +1153,7 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
                        !item.message.attributes.contains(where: { $0 is TypingDraftMessageAttribute }) {
                         ContainedViewLayoutTransition.animated(duration: 0.2, curve: .easeInOut).updateAlpha(node: statusNode, alpha: 1.0)
                     }
-                    self.requestFullUpdate?(ControlledTransition(duration: 0.15, curve: .easeInOut, interactive: false))
+                    self.requestFullUpdate?()
                 } else {
                     // If the revealed prefix's bottom y would change at the new cursor (i.e.
                     // crossing a line/item boundary), trigger a full bubble re-layout so the
@@ -1170,7 +1170,7 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
                     self.pageView?.applyReveal(revealedCount: revealedGlyphCount, costMap: costMap, animated: true)
                     self.lastAppliedRevealedCount = revealedGlyphCount
                     if requestUpdate {
-                        self.requestFullUpdate?(ControlledTransition(duration: 0.15, curve: .easeInOut, interactive: false))
+                        self.requestFullUpdate?()
                     }
                 }
             }
@@ -1238,7 +1238,7 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
                 isNew = false
             } else {
                 self.shimmeringNode?.removeFromSupernode()
-                shimmeringNode = ShimmeringLinkNode(color: color, isSkeleton: showTextAsPlaceholder)
+                shimmeringNode = ShimmeringLinkNode(color: color)
                 self.shimmeringNode = shimmeringNode
                 self.shimmeringNodeIsSkeleton = showTextAsPlaceholder
                 self.containerNode.insertSubnode(shimmeringNode, at: 0)
@@ -1343,20 +1343,11 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
         let url = ChatMessageBubbleContentTapAction.Url(url: urlHit.urlItem.url, concealed: concealed, allowInlineWebpageResolution: urlHit.urlItem.webpageId != nil)
         let rects = self.computeHighlightRects(item: urlHit.item, parentOffset: urlHit.parentOffset, localPoint: urlHit.localPoint)
         
-        if let webpageId = urlHit.urlItem.webpageId {
-            let split = self.splitAnchor(url.url)
-            return ChatMessageBubbleContentTapAction(
-                content: .externalInstantPage(url: url, webpageId: webpageId, anchor: split.anchor),
-                rects: rects,
-                activate: self.makeActivate(item: urlHit.item, parentOffset: urlHit.parentOffset, localPoint: urlHit.localPoint)
-            )
-        } else {
-            return ChatMessageBubbleContentTapAction(
-                content: .url(url),
-                rects: rects,
-                activate: self.makeActivate(item: urlHit.item, parentOffset: urlHit.parentOffset, localPoint: urlHit.localPoint)
-            )
-        }
+        return ChatMessageBubbleContentTapAction(
+            content: .url(url),
+            rects: rects,
+            activate: self.makeActivate(item: urlHit.item, parentOffset: urlHit.parentOffset, localPoint: urlHit.localPoint)
+        )
     }
 
     private func textItemAtLocation(_ location: CGPoint) -> (item: InstantPageTextItem, parentOffset: CGPoint)? {
@@ -1404,9 +1395,6 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
             return .hashtag(hashtag.peerName, hashtag.hashtag)
         } else if let bankCard = attributes[NSAttributedString.Key(rawValue: TelegramTextAttributes.BankCard)] as? String {
             return .bankCard(bankCard)
-        } else if let date = attributes[NSAttributedString.Key(rawValue: TelegramTextAttributes.Date)] as? Int32 {
-            // The displayed string is unused downstream (ChatMessageBubbleItemNode matches `.date(date, _)`).
-            return .date(date, "")
         }
         return nil
     }
@@ -1596,7 +1584,7 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
         let textSelectionNode = TextSelectionNode(
             theme: TextSelectionTheme(selection: selectionColor, knob: knobColor, isDark: theme.overallDarkAppearance),
             strings: messageItem.presentationData.strings,
-            textNodeOrView: .node(adapter),
+            textNode: adapter,
             updateIsActive: { _ in },
             present: { [weak self] c, a in
                 guard let self, let item = self.item else {
@@ -1608,8 +1596,8 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
                     item.controllerInteraction.presentGlobalOverlayController(c, a)
                 }
             },
-            rootView: { [weak rootNode] in
-                return rootNode?.view
+            rootNode: { [weak rootNode] in
+                return rootNode
             },
             performAction: { [weak self] text, action in
                 guard let self, let item = self.item else {
@@ -1660,7 +1648,7 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
         return false
     }
 
-    override public func getAnchorRect(anchor: String) -> CGRect? {
+    public func getAnchorRect(anchor: String) -> CGRect? {
         guard let pageView = self.pageView, let rect = pageView.anchorFrame(name: anchor) else {
             return nil
         }

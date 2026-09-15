@@ -551,10 +551,11 @@ final class RichTextAttachmentScreenComponent: Component {
             let existingLink = self.editor.currentLink()
 
             let linkController = chatTextLinkEditController(
-                context: component.context,
+                sharedContext: component.context.sharedContext,
+                account: component.context.account,
                 text: environment.strings.TextFormat_AddLinkText(selectedText).string,
                 link: existingLink,
-                apply: { [weak self] link, _ in
+                apply: { [weak self] link in
                     guard let self, let link else { return }
                     self.editor.becomeFirstResponder()
                     if link.isEmpty {
@@ -1411,117 +1412,10 @@ final class RichTextAttachmentScreenComponent: Component {
             
             let actionBarSpacing: CGFloat = 6.0
             
-            let aiButtonSize = self.aiButton.update(
-                transition: transition,
-                component: AnyComponent(GlassControlGroupComponent(
-                    theme: environment.theme,
-                    preferClearGlass: false,
-                    background: .panel,
-                    items: [
-                        GlassControlGroupComponent.Item(id: 0, content: .icon("Chat/Input/Text/InputAIIcon"), action: { [weak self] in
-                            Task { @MainActor in
-                                guard let self, let component = self.component, let environment = self.environment else {
-                                    return
-                                }
-                                guard let controller = environment.controller() as? RichTextAttachmentScreen else {
-                                    return
-                                }
-                                
-                                // AI edit on the current selection: seed the edit screen with only the
-                                // selected sub-document (partial table/image coverage expanded to the whole
-                                // block, both directions) and replace that same range with the result. The
-                                // gate is CONTENT-based (`ChatInputContent.isEmpty`), not text-based, so a
-                                // selection covering only an image / empty-caption still enters here.
-                                if let sel = self.editor.selectedGlobalRange() {
-                                    let doc = self.editor.document
-                                    let (lo, hi) = doc.expandingRangeOverNonTextBlocks(globalFrom: sel.from, globalTo: sel.to)
-                                    let subDoc = doc.extractFragment(globalFrom: lo, globalTo: hi, carryingNonTextBlocks: true)
-                                    let subContent = chatInputContent(fromDocument: subDoc, media: self.currentMedia, emojiFiles: self.currentEmojiFiles)
-                                    if !subContent.isEmpty {
-                                        let initialText = ComposedRichMessage.rich(instantPage: instantPage(from: subContent))
-                                        let textProcessingScreen = await component.context.sharedContext.makeTextProcessingScreen(
-                                            context: component.context,
-                                            theme: environment.theme,
-                                            mode: .edit(
-                                                saveRestoreStateId: nil,
-                                                completion: { [weak self] result in
-                                                    guard let self else {
-                                                        return
-                                                    }
-                                                    let content: ChatInputContent
-                                                    switch result {
-                                                    case let .rich(instantPage):
-                                                        content = chatInputContent(fromInstantPage: instantPage)
-                                                    case let .plain(text, entities):
-                                                        content = chatInputContent(from: chatInputStateStringWithAppliedEntities(text, entities: entities))
-                                                    case .empty:
-                                                        // An empty result deletes the (expanded) selection.
-                                                        self.editor.replaceRange(from: lo, to: hi, with: Document(blocks: []))
-                                                        return
-                                                    }
-                                                    let (document, media, emojiFiles) = documentMediaAndEmoji(fromChatInputContent: content)
-                                                    self.emojiKeyboard?.seedEmojiFiles(emojiFiles)
-                                                    self.attachedMedia.merge(media) { _, new in new }
-                                                    self.editor.replaceRange(from: lo, to: hi, with: document)
-                                                },
-                                                send: nil,
-                                                sendContextActions: nil
-                                            ),
-                                            inputText: initialText,
-                                            copyResult: nil,
-                                            translateChat: nil
-                                        )
-                                        if let parentController = controller.parentController() {
-                                            parentController.push(textProcessingScreen)
-                                        } else {
-                                            controller.push(textProcessingScreen)
-                                        }
-                                        return
-                                    }
-                                }
-
-                                // No usable selection → generate content and insert it at the caret.
-                                do {
-                                    let textProcessingScreen = await component.context.sharedContext.makeTextProcessingScreen(
-                                        context: component.context,
-                                        theme: environment.theme,
-                                        mode: .generate(
-                                            completion: { [weak self] result in
-                                                guard let self else {
-                                                    return
-                                                }
-                                                let content: ChatInputContent
-                                                switch result {
-                                                case let .rich(instantPage):
-                                                    content = chatInputContent(fromInstantPage: instantPage)
-                                                case let .plain(text, entities):
-                                                    content = chatInputContent(from: chatInputStateStringWithAppliedEntities(text, entities: entities))
-                                                case .empty:
-                                                    return
-                                                }
-                                                let (document, media, emojiFiles) = documentMediaAndEmoji(fromChatInputContent: content)
-                                                self.emojiKeyboard?.seedEmojiFiles(emojiFiles)
-                                                self.attachedMedia.merge(media) { _, new in new }
-                                                self.editor.insertDocument(document)
-                                            }
-                                        ),
-                                        inputText: .plain(text: "", entities: []),
-                                        copyResult: nil,
-                                        translateChat: nil
-                                    )
-                                    if let parentController = controller.parentController() {
-                                        parentController.push(textProcessingScreen)
-                                    } else {
-                                        controller.push(textProcessingScreen)
-                                    }
-                                }
-                            }
-                        })
-                    ], minWidth: 44.0)
-                ),
-                environment: {},
-                containerSize: CGSize(width: 44.0, height: 44.0)
-            )
+            // AI text processing is not part of Articles and does not exist in the 11.15 shared context.
+            // Keep it out of the backport so the legacy UI and dependency boundary remain intact.
+            let aiButtonSize = CGSize.zero
+            self.aiButton.view?.isHidden = true
             
             var isSendEnabled = true
             let content = chatInputContent(fromDocument: self.currentDocument, media: self.currentMedia, emojiFiles: self.currentEmojiFiles)

@@ -366,7 +366,7 @@ private final class FormulaEditorSheetContent: Component {
                 transition: .immediate,
                 component: AnyComponent(GlassBarButtonComponent(
                     size: barButtonSize,
-                    backgroundColor: isValid ? theme.list.itemCheckColors.fillColor : theme.list.itemCheckColors.fillColor.desaturated().withMultipliedAlpha(0.5),
+                    backgroundColor: isValid ? theme.list.itemCheckColors.fillColor : theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.5),
                     isDark: theme.overallDarkAppearance,
                     state: .tintedGlass,
                     isEnabled: isValid,
@@ -426,7 +426,6 @@ private final class FormulaEditorSheetContent: Component {
                 transition: transition,
                 component: AnyComponent(ListSectionComponent(
                     theme: theme,
-                    style: .glass,
                     header: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.RichText_FormulaSectionSourceTitle,
@@ -439,27 +438,14 @@ private final class FormulaEditorSheetContent: Component {
                     items: [
                         AnyComponentWithIdentity(id: "latex", component: AnyComponent(
                             ListTextFieldItemComponent(
-                                style: .glass,
                                 theme: theme,
                                 initialText: component.initialLatex,
                                 placeholder: component.placeholderLatex,
-                                hasClearButton: false,
                                 autocapitalizationType: .none,
                                 autocorrectionType: .no,
-                                returnKeyType: .done,
                                 updated: { [weak self] text in
                                     self?.currentLatex = text
                                     component.updateLatex(text)
-                                },
-                                onReturn: { [weak self] in
-                                    guard let self else {
-                                        return
-                                    }
-                                    let latex = self.currentLatex.trimmingCharacters(in: .whitespacesAndNewlines)
-                                    guard !latex.isEmpty else {
-                                        return
-                                    }
-                                    component.complete(latex)
                                 },
                                 tag: formulaInputTag
                             )
@@ -495,7 +481,6 @@ private final class FormulaEditorSheetContent: Component {
                 transition: transition,
                 component: AnyComponent(ListSectionComponent(
                     theme: theme,
-                    style: .glass,
                     header: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.RichText_FormulaSectionResultTitle,
@@ -645,8 +630,6 @@ private final class FormulaEditorSheetComponent: Component {
             let latex = self.latex ?? initialLatex
 
             let sheetEnvironment = SheetComponentEnvironment(
-                metrics: environment.metrics,
-                deviceMetrics: environment.deviceMetrics,
                 isDisplaying: environment.isVisible,
                 isCentered: environment.metrics.widthClass == .regular,
                 hasInputHeight: !environment.inputHeight.isZero,
@@ -678,7 +661,6 @@ private final class FormulaEditorSheetComponent: Component {
                             self?.dismiss(animated: true)
                         }
                     )),
-                    style: .glass,
                     backgroundColor: .blur(.dark),
                     followContentSizeChanges: true,
                     clipsContent: true,

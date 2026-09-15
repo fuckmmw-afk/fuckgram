@@ -70,7 +70,6 @@ final class RichTextEmojiKeyboardController {
             hasStickers: false,
             hasGifs: false,
             hideBackground: false,
-            maskEdge: .none,
             sendGif: nil
         ))
         self.dataDisposable = (self.dataPromise.get()
@@ -87,7 +86,6 @@ final class RichTextEmojiKeyboardController {
             sendEmoji: { _, _, _ in },
             sendGif: { _, _, _, _, _ in return false },
             sendBotContextResultAsGif: { _, _, _, _, _, _ in return false },
-            editGif: { _, _ in },
             updateChoosingSticker: { _ in },
             switchToTextInput: { [weak self] in self?.setEmojiMode(false) },
             dismissTextInput: { },
@@ -204,7 +202,6 @@ final class RichTextEmojiKeyboardController {
         let presentationInterfaceState = ChatPresentationInterfaceState(
             chatWallpaper: .builtin(WallpaperSettings()),
             theme: presentationData.theme,
-            preferredGlassType: .default,
             strings: presentationData.strings,
             dateTimeFormat: presentationData.dateTimeFormat,
             nameDisplayOrder: presentationData.nameDisplayOrder,
@@ -215,10 +212,12 @@ final class RichTextEmojiKeyboardController {
             mode: .standard(.default),
             chatLocation: .peer(id: self.context.account.peerId),
             subject: nil,
+            peerNearbyData: nil,
             greetingData: nil,
             pendingUnpinnedAllMessages: false,
             activeGroupCallInfo: nil,
             hasActiveGroupCall: false,
+            importState: nil,
             threadData: nil,
             isGeneralThreadClosed: nil,
             replyMessage: nil,
