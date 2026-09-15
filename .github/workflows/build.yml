@@ -194,6 +194,7 @@ jobs:
           set +e
           python3 -u build-system/Make/Make.py \
             --overrideXcodeVersion \
+            --bazelArguments="--cpu=ios_arm64" \
             build \
             --configurationPath="build-system/appstore-configuration.json" \
             --codesigningInformationPath=build-system/fake-codesigning \
