@@ -320,13 +320,13 @@ final class ShareSearchContainerNode: ASDisplayNode, ShareContentContainerNode {
                     var result = Set<EnginePeer.Id>()
                     
                     for peer in foundPeers.foundLocalPeers {
-                        if let user = peer.peer as? TelegramUser, user.flags.contains(.requirePremium) {
+                        if case let .user(user) = peer.peer, user.flags.contains(.requirePremium) {
                             result.insert(user.id)
                         }
                     }
                     
                     for peer in foundPeers.foundRemotePeers.0 {
-                        if let user = peer.peer as? TelegramUser, user.flags.contains(.requirePremium) {
+                        if case let .user(user) = peer.peer, user.flags.contains(.requirePremium) {
                             result.insert(user.id)
                         }
                     }
@@ -392,7 +392,7 @@ final class ShareSearchContainerNode: ASDisplayNode, ShareContentContainerNode {
                             let peer = foundPeer.peer
                             if !existingPeerIds.contains(peer.id) && canSendMessagesToPeer(peer) {
                                 existingPeerIds.insert(peer.id)
-                                entries.append(ShareSearchPeerEntry(index: index, peer: EngineRenderedPeer(peer: EnginePeer(foundPeer.peer)), presence: nil, requiresPremiumForMessaging: peerRequiresPremiumForMessaging[peer.id] ?? false, requiresStars: nil, theme: theme, strings: strings, isGlobal: false))
+                                entries.append(ShareSearchPeerEntry(index: index, peer: EngineRenderedPeer(peer: foundPeer.peer), presence: nil, requiresPremiumForMessaging: peerRequiresPremiumForMessaging[peer.id] ?? false, requiresStars: nil, theme: theme, strings: strings, isGlobal: false))
                                 index += 1
                             }
                         }
@@ -401,7 +401,7 @@ final class ShareSearchContainerNode: ASDisplayNode, ShareContentContainerNode {
                             let peer = foundPeer.peer
                             if !existingPeerIds.contains(peer.id) && canSendMessagesToPeer(peer) {
                                 existingPeerIds.insert(peer.id)
-                                entries.append(ShareSearchPeerEntry(index: index, peer: EngineRenderedPeer(peer: EnginePeer(peer)), presence: nil, requiresPremiumForMessaging: peerRequiresPremiumForMessaging[peer.id] ?? false, requiresStars: nil, theme: theme, strings: strings, isGlobal: true))
+                                entries.append(ShareSearchPeerEntry(index: index, peer: EngineRenderedPeer(peer: peer), presence: nil, requiresPremiumForMessaging: peerRequiresPremiumForMessaging[peer.id] ?? false, requiresStars: nil, theme: theme, strings: strings, isGlobal: true))
                                 index += 1
                             }
                         }

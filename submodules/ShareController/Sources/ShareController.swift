@@ -2527,7 +2527,7 @@ public final class ShareController: ViewController {
                     ),
                     ChatListEntryMessageTagSummaryKey(
                         tag: .unseenReaction,
-                        actionType: PendingMessageActionType.readReaction
+                        actionType: PendingMessageActionType.readReactionOrPollVote
                     ): ChatListEntrySummaryComponents.Component(
                         tagSummary: ChatListEntryMessageTagSummaryComponent(namespace: Namespaces.Message.Cloud),
                         actionsSummary: ChatListEntryPendingMessageActionsSummaryComponent(namespace: Namespaces.Message.Cloud)
@@ -2548,7 +2548,8 @@ public final class ShareController: ViewController {
             peer,
             tailChatList |> take(1)
         )
-        |> mapToSignal { maybeAccountPeer, view -> Signal<([(peer: EngineRenderedPeer, presence: EnginePeer.Presence?, requiresPremiumForMessaging: Bool, requiresStars: Int64?)], EnginePeer), NoError> in
+        |> mapToSignal { value -> Signal<([(peer: EngineRenderedPeer, presence: EnginePeer.Presence?, requiresPremiumForMessaging: Bool, requiresStars: Int64?)], EnginePeer), NoError> in
+            let (maybeAccountPeer, view) = value
             let accountPeer = maybeAccountPeer!
             
             var peers: [EngineRenderedPeer] = []

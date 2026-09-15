@@ -217,10 +217,11 @@ private final class GiftViewSheetContent: CombinedComponent {
                     if self.testUpgradeAnimation {
                         if gift.giftId != 0 {
                             self.sampleDisposable.add((context.engine.payments.starGiftUpgradePreview(giftId: gift.giftId)
-                            |> deliverOnMainQueue).start(next: { [weak self] attributes in
-                                guard let self else {
+                            |> deliverOnMainQueue).start(next: { [weak self] upgradePreview in
+                                guard let self, let upgradePreview else {
                                     return
                                 }
+                                let attributes = upgradePreview.attributes
                                 self.sampleGiftAttributes = attributes
                                 
                                 for attribute in attributes {
@@ -244,10 +245,11 @@ private final class GiftViewSheetContent: CombinedComponent {
                     }
                     if arguments.canUpgrade || arguments.upgradeStars != nil || arguments.prepaidUpgradeHash != nil {
                         self.sampleDisposable.add((context.engine.payments.starGiftUpgradePreview(giftId: gift.id)
-                        |> deliverOnMainQueue).start(next: { [weak self] attributes in
-                            guard let self else {
+                        |> deliverOnMainQueue).start(next: { [weak self] upgradePreview in
+                            guard let self, let upgradePreview else {
                                 return
                             }
+                            let attributes = upgradePreview.attributes
                             self.sampleGiftAttributes = attributes
                             
                             for attribute in attributes {
@@ -1082,7 +1084,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                 }
                 
                 if case let .unique(gift) = arguments.gift, let resellAmount = gift.resellAmounts?.first, resellAmount.amount.value > 0 {
-                    if arguments.reference != nil || gift.owner.peerId == context.account.peerId {
+                    if arguments.reference != nil || gift.owner?.peerId == context.account.peerId {
                         items.append(.action(ContextMenuActionItem(text: presentationData.strings.Gift_View_Context_ChangePrice, icon: { theme in
                             return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/PriceTag"), color: theme.contextMenu.primaryColor)
                         }, action: { [weak self] c, _ in
@@ -2917,6 +2919,8 @@ private final class GiftViewSheetContent: CombinedComponent {
                                     )
                                 )
                             ))
+                        case nil:
+                            break
                         }
                     } else if let peerId = subject.arguments?.fromPeerId, let peer = state.peerMap[peerId] {
                         var isBot = false

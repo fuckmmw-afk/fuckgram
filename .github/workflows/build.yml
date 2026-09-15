@@ -140,7 +140,7 @@ jobs:
           echo "appended CI options to .bazelrc:"
           tail -n 4 "$GITHUB_WORKSPACE/.bazelrc"
 
-      - name: Build unsigned app
+      - name: Prepare build configuration
         run: |
           set -euo pipefail
           SOURCE_DIR="$GITHUB_WORKSPACE"
@@ -180,6 +180,44 @@ jobs:
           IDENTITY_OUTPUT="$(security find-identity -v -p codesigning temp.keychain)"
           printf '%s\n' "$IDENTITY_OUTPUT"
           grep -Eq '[1-9][0-9]* valid identities found' <<< "$IDENTITY_OUTPUT"
+
+      - name: Preflight Swift modules
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          mkdir -p build/logs
+
+          # Compile the complete legacy UI dependency graph in the same release
+          # configuration as the IPA, but stop before app/extension linking,
+          # dSYM generation, packaging and signing. The following full build
+          # reuses these actions from the shared Bazel disk cache.
+          set +e
+          python3 -u build-system/Make/Make.py \
+            --overrideXcodeVersion \
+            build \
+            --configurationPath="build-system/appstore-configuration.json" \
+            --codesigningInformationPath=build-system/fake-codesigning \
+            --configuration=release_arm64 \
+            --buildNumber="$BUILD_NUMBER" \
+            --target="//submodules/TelegramUI:TelegramUI" \
+            --continueOnError \
+            2>&1 | tee build/logs/preflight.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            grep -E '(^|[^[:alpha:]])error:|^ERROR:|BUILD FAILED' build/logs/preflight.log \
+              | grep -v 'fatal: not a git repository' \
+              | tail -n 250 > build/logs/compiler-errors.txt || true
+            echo "Preflight compiler diagnostics:"
+            cat build/logs/compiler-errors.txt
+            exit "$status"
+          fi
+
+      - name: Build unsigned app
+        run: |
+          set -euo pipefail
+          SOURCE_DIR="$GITHUB_WORKSPACE"
+          cd "$SOURCE_DIR"
 
           # Do not pass --disableProvisioningProfiles: rules_apple then sets
           # provisioning_profile=None and fails device IPA analysis (Build #7).
@@ -221,9 +259,28 @@ jobs:
 
           test -f build/artifacts/Telegram.ipa
           cp build/artifacts/Telegram.ipa build/artifacts/Telegram-11.15-articles-unsigned.ipa
-          python3 -c 'import json,os,datetime; open("build/artifacts/build-metadata.json","w").write(json.dumps({"source_sha":os.environ.get("SOURCE_SHA"),"app_version":os.environ.get("APP_VERSION"),"build_number":os.environ.get("BUILD_NUMBER"),"api_layer":"228","built_at":datetime.datetime.utcnow().isoformat()+"Z","signing":"unsigned / fake-codesigning"}, indent=2)+"\n")'
           ls -lh build/artifacts
           df -h
+
+      - name: Collect compiler diagnostics
+        if: failure()
+        run: |
+          set -euo pipefail
+          mkdir -p build/logs
+          if [ ! -s build/logs/compiler-errors.txt ]; then
+            grep -Eh '(^|[^[:alpha:]])error:|^ERROR:|BUILD FAILED' build/logs/*.log 2>/dev/null \
+              | grep -v 'fatal: not a git repository' \
+              | tail -n 250 > build/logs/compiler-errors.txt || true
+          fi
+          cat build/logs/compiler-errors.txt || true
+
+      - name: Upload compiler diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiler-errors
+          path: build/logs/compiler-errors.txt
+          if-no-files-found: ignore
 
       - name: Save Bazel disk cache
         if: always() && steps.bazel-cache.outputs.cache-hit != 'true'
@@ -237,7 +294,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Telegram-11.15-articles-unsigned
-          path: |
-            build/artifacts/Telegram-11.15-articles-unsigned.ipa
-            build/artifacts/build-metadata.json
+          path: build/artifacts/Telegram-11.15-articles-unsigned.ipa
           if-no-files-found: error

@@ -351,7 +351,7 @@ final class ComposePollScreenComponent: Component {
             
             let mappedKind: TelegramMediaPollKind
             if self.isQuiz {
-                mappedKind = .quiz
+                mappedKind = .quiz(multipleAnswers: false)
             } else {
                 mappedKind = .poll(multipleAnswers: self.isMultiAnswer)
             }
@@ -379,7 +379,9 @@ final class ComposePollScreenComponent: Component {
                 mappedOptions.append(TelegramMediaPollOption(
                     text: pollOption.textInputState.text.string,
                     entities: entities,
-                    opaqueIdentifier: optionData
+                    opaqueIdentifier: optionData,
+                    date: nil,
+                    addedBy: nil
                 ))
             }
             
@@ -435,7 +437,9 @@ final class ComposePollScreenComponent: Component {
                     recentVoters: [],
                     solution: mappedSolution.flatMap { mappedSolution in
                         return TelegramMediaPollResults.Solution(text: mappedSolution.0, entities: mappedSolution.1)
-                    }
+                    },
+                    hasUnseenVotes: false,
+                    canViewStats: false
                 ),
                 deadlineTimeout: nil,
                 usedCustomEmojiFiles: usedCustomEmojiFiles
