@@ -320,9 +320,6 @@ class BazelCommandLine:
 
         combined_arguments += self.configuration_args
 
-        if self.additional_args is not None:
-            combined_arguments += shlex.split(self.additional_args)
-
         print('TelegramBuild: running')
         print(subprocess.list2cmdline(combined_arguments))
         call_executable(combined_arguments)
@@ -657,9 +654,6 @@ def build(bazel, arguments):
         bazel_command_line.add_cache_dir(arguments.cacheDir)
     elif arguments.cacheHost is not None:
         bazel_command_line.add_remote_cache(arguments.cacheHost)
-    if arguments.bazelArguments is not None:
-        bazel_command_line.add_additional_args(arguments.bazelArguments)
-
     resolve_configuration(
         base_path=os.getcwd(),
         bazel_command_line=bazel_command_line,

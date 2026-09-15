@@ -191,12 +191,11 @@ jobs:
           # configuration and iPhoneOS transition as the IPA. The framework
           # wrapper supplies the Apple platform transition that a top-level
           # swift_library lacks, while stopping before application/extension
-          # linking, dSYM generation, IPA packaging and app signing. The full
+          # linking, IPA packaging and app signing. The full
           # build below reuses these actions from the shared Bazel disk cache.
           set +e
           python3 -u build-system/Make/Make.py \
             --overrideXcodeVersion \
-            --bazelArguments="--noapple_generate_dsym --output_groups=default" \
             build \
             --configurationPath="build-system/appstore-configuration.json" \
             --codesigningInformationPath=build-system/fake-codesigning \
