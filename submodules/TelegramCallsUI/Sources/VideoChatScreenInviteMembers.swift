@@ -136,7 +136,7 @@ extension VideoChatScreenComponent.View {
                                 } else {
                                     text = environment.strings.VoiceChat_InvitedPeerText(peer.displayTitle(strings: environment.strings, displayOrder: groupCall.accountContext.sharedContext.currentPresentationData.with({ $0 }).nameDisplayOrder)).string
                                 }
-                                self.presentUndoOverlay(content: .invitedToVoiceChat(context: groupCall.accountContext, peer: EnginePeer(participant.peer), title: nil, text: text, action: nil, duration: 3), action: { _ in return false })
+                                self.presentUndoOverlay(content: .invitedToVoiceChat(context: groupCall.accountContext, peer: participant.peer, title: nil, text: text, action: nil, duration: 3), action: { _ in return false })
                             }
                         } else {
                             if case let .channel(groupPeer) = groupPeer, let listenerLink = inviteLinks?.listenerLink, !groupPeer.hasPermission(.inviteMembers) {

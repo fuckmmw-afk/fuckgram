@@ -1035,7 +1035,7 @@ public final class PresentationGroupCallImpl: PresentationGroupCall {
         }
         
         self.groupCallParticipantUpdatesDisposable = (self.account.stateManager.groupCallParticipantUpdates
-        |> deliverOnMainQueue).start(next: { [weak self] updates in
+        |> deliverOnMainQueue).start(next: { [weak self] (updates: [(Int64, GroupCallParticipantsContext.Update)]) in
             guard let self else {
                 return
             }
@@ -1328,7 +1328,8 @@ public final class PresentationGroupCallImpl: PresentationGroupCall {
                             muteState: self.temporaryMuteState ?? GroupCallParticipantsContext.Participant.MuteState(canUnmute: true, mutedByYou: false),
                             volume: nil,
                             about: about,
-                            joinedVideo: self.temporaryJoinedVideo
+                            joinedVideo: self.temporaryJoinedVideo,
+                            paidStarsTotal: nil
                         ))
                         participants.sort(by: { GroupCallParticipantsContext.Participant.compare(lhs: $0, rhs: $1, sortAscending: state.sortAscending) })
                     }
@@ -1409,7 +1410,8 @@ public final class PresentationGroupCallImpl: PresentationGroupCall {
                         muteState: self.temporaryMuteState ?? GroupCallParticipantsContext.Participant.MuteState(canUnmute: true, mutedByYou: false),
                         volume: nil,
                         about: about,
-                        joinedVideo: self.temporaryJoinedVideo
+                        joinedVideo: self.temporaryJoinedVideo,
+                        paidStarsTotal: nil
                     ))
                 }
 
@@ -1511,6 +1513,7 @@ public final class PresentationGroupCallImpl: PresentationGroupCall {
                 adminIds: Set(),
                 isCreator: false,
                 defaultParticipantsAreMuted: callInfo.defaultParticipantsAreMuted ?? GroupCallParticipantsContext.State.DefaultParticipantsAreMuted(isMuted: self.stateValue.defaultParticipantMuteState == .muted, canChange: true),
+                messagesAreEnabled: callInfo.messagesAreEnabled ?? GroupCallParticipantsContext.State.MessagesAreEnabled(isEnabled: true, canChange: false, sendPaidMessagesStars: nil),
                 sortAscending: true,
                 recordingStartTimestamp: nil,
                 title: self.stateValue.title,
@@ -1520,6 +1523,8 @@ public final class PresentationGroupCallImpl: PresentationGroupCall {
                 isVideoEnabled: callInfo.isVideoEnabled,
                 unmutedVideoLimit: callInfo.unmutedVideoLimit,
                 isStream: callInfo.isStream,
+                sendPaidMessagesStars: callInfo.messagesAreEnabled?.sendPaidMessagesStars,
+                defaultSendAs: callInfo.defaultSendAs,
                 version: 0
             ),
             previousServiceState: nil,
@@ -1596,7 +1601,8 @@ public final class PresentationGroupCallImpl: PresentationGroupCall {
                     muteState: self.temporaryMuteState ?? GroupCallParticipantsContext.Participant.MuteState(canUnmute: canManageCall || !state.defaultParticipantsAreMuted.isMuted, mutedByYou: false),
                     volume: nil,
                     about: about,
-                    joinedVideo: self.temporaryJoinedVideo
+                    joinedVideo: self.temporaryJoinedVideo,
+                    paidStarsTotal: nil
                 ))
             }
 
@@ -1631,10 +1637,12 @@ public final class PresentationGroupCallImpl: PresentationGroupCall {
                     recordingStartTimestamp: nil,
                     sortAscending: true,
                     defaultParticipantsAreMuted: callInfo.defaultParticipantsAreMuted ?? state.defaultParticipantsAreMuted,
+                    messagesAreEnabled: callInfo.messagesAreEnabled ?? state.messagesAreEnabled,
                     isVideoEnabled: callInfo.isVideoEnabled,
                     unmutedVideoLimit: callInfo.unmutedVideoLimit,
                     isStream: callInfo.isStream,
-                    isCreator: callInfo.isCreator
+                    isCreator: callInfo.isCreator,
+                    defaultSendAs: state.defaultSendAs
                 )), audioSessionControl: self.audioSessionControl)
             } else {
                 self.summaryInfoState.set(.single(SummaryInfoState(info: GroupCallInfo(
@@ -1648,10 +1656,12 @@ public final class PresentationGroupCallImpl: PresentationGroupCall {
                     recordingStartTimestamp: state.recordingStartTimestamp,
                     sortAscending: state.sortAscending,
                     defaultParticipantsAreMuted: state.defaultParticipantsAreMuted,
+                    messagesAreEnabled: state.messagesAreEnabled,
                     isVideoEnabled: state.isVideoEnabled,
                     unmutedVideoLimit: state.unmutedVideoLimit,
                     isStream: callInfo.isStream,
-                    isCreator: callInfo.isCreator
+                    isCreator: callInfo.isCreator,
+                    defaultSendAs: state.defaultSendAs
                 ))))
                 
                 self.summaryParticipantsState.set(.single(SummaryParticipantsState(
@@ -2429,7 +2439,8 @@ public final class PresentationGroupCallImpl: PresentationGroupCall {
                                 muteState: self.temporaryMuteState ?? GroupCallParticipantsContext.Participant.MuteState(canUnmute: true, mutedByYou: false),
                                 volume: nil,
                                 about: about,
-                                joinedVideo: self.temporaryJoinedVideo
+                                joinedVideo: self.temporaryJoinedVideo,
+                                paidStarsTotal: nil
                             ))
                             participants.sort(by: { GroupCallParticipantsContext.Participant.compare(lhs: $0, rhs: $1, sortAscending: state.sortAscending) })
                         }
@@ -2602,10 +2613,12 @@ public final class PresentationGroupCallImpl: PresentationGroupCall {
                         recordingStartTimestamp: state.recordingStartTimestamp,
                         sortAscending: state.sortAscending,
                         defaultParticipantsAreMuted: state.defaultParticipantsAreMuted,
+                        messagesAreEnabled: state.messagesAreEnabled,
                         isVideoEnabled: state.isVideoEnabled,
                         unmutedVideoLimit: state.unmutedVideoLimit,
                         isStream: callInfo.isStream,
-                        isCreator: callInfo.isCreator
+                        isCreator: callInfo.isCreator,
+                        defaultSendAs: state.defaultSendAs
                     ))))
                     
                     self.summaryParticipantsState.set(.single(SummaryParticipantsState(

@@ -1183,7 +1183,8 @@ final class VideoChatScreenComponent: Component {
                         muteState: nil,
                         volume: nil,
                         about: nil,
-                        joinedVideo: false
+                        joinedVideo: false,
+                        paidStarsTotal: nil
                     ))
                 }
                 if let remotePeer {
@@ -1209,7 +1210,8 @@ final class VideoChatScreenComponent: Component {
                         muteState: nil,
                         volume: nil,
                         about: nil,
-                        joinedVideo: false
+                        joinedVideo: false,
+                        paidStarsTotal: nil
                     ))
                 }
                 let members = PresentationGroupCallMembers(
@@ -1558,7 +1560,7 @@ final class VideoChatScreenComponent: Component {
                     
                     let currentAccountPeer = groupCall.accountContext.account.postbox.loadedPeerWithId(groupCall.accountContext.account.peerId)
                     |> map { peer in
-                        return [FoundPeer(peer: peer, subscribers: nil)]
+                        return [FoundPeer(peer: EnginePeer(peer), subscribers: nil)]
                     }
                     let cachedDisplayAsAvailablePeers: Signal<[FoundPeer], NoError>
                     if let peerId = groupCall.peerId {
