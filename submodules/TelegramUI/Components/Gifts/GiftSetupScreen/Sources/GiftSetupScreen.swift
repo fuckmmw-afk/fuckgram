@@ -727,7 +727,6 @@ final class GiftSetupScreenComponent: Component {
                     if let _ = gift.upgradeStars {
                         self.previewPromise.set(
                             component.context.engine.payments.starGiftUpgradePreview(giftId: gift.id)
-                            |> map(Optional.init)
                         )
                     }
                 }

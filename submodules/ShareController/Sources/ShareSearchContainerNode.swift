@@ -320,7 +320,7 @@ final class ShareSearchContainerNode: ASDisplayNode, ShareContentContainerNode {
                     var result = Set<EnginePeer.Id>()
                     
                     for peer in foundPeers.foundLocalPeers {
-                        if case let .user(user) = peer.peer, user.flags.contains(.requirePremium) {
+                        if let user = peer.peer as? TelegramUser, user.flags.contains(.requirePremium) {
                             result.insert(user.id)
                         }
                     }
@@ -331,7 +331,7 @@ final class ShareSearchContainerNode: ASDisplayNode, ShareContentContainerNode {
                         }
                     }
                     for peer in foundPeers.foundRemotePeers.1 {
-                        if let user = peer.peer as? TelegramUser, user.flags.contains(.requirePremium) {
+                        if case let .user(user) = peer.peer, user.flags.contains(.requirePremium) {
                             result.insert(user.id)
                         }
                     }
