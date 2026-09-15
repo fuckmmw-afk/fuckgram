@@ -188,19 +188,21 @@ jobs:
           mkdir -p build/logs
 
           # Compile the complete legacy UI dependency graph in the same release
-          # configuration as the IPA, but stop before app/extension linking,
-          # dSYM generation, packaging and signing. The following full build
-          # reuses these actions from the shared Bazel disk cache.
+          # configuration and iPhoneOS transition as the IPA. The framework
+          # wrapper supplies the Apple platform transition that a top-level
+          # swift_library lacks, while stopping before application/extension
+          # linking, dSYM generation, IPA packaging and app signing. The full
+          # build below reuses these actions from the shared Bazel disk cache.
           set +e
           python3 -u build-system/Make/Make.py \
             --overrideXcodeVersion \
-            --bazelArguments="--cpu=ios_arm64" \
+            --bazelArguments="--noapple_generate_dsym --output_groups=default" \
             build \
             --configurationPath="build-system/appstore-configuration.json" \
             --codesigningInformationPath=build-system/fake-codesigning \
             --configuration=release_arm64 \
             --buildNumber="$BUILD_NUMBER" \
-            --target="//submodules/TelegramUI:TelegramUI" \
+            --target="//Telegram:TelegramUIFramework" \
             --continueOnError \
             2>&1 | tee build/logs/preflight.log
           status=${PIPESTATUS[0]}
