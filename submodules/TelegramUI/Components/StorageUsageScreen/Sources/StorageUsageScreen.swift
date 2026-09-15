@@ -1074,6 +1074,8 @@ final class StorageUsageScreenComponent: Component {
                                 } else {
                                     result[.channels, default: 0] += 1
                                 }
+                            case .community:
+                                result[.groups, default: 0] += 1
                             }
                         }
                         
@@ -3154,7 +3156,7 @@ final class StorageUsageScreenComponent: Component {
                             continue
                         }
                         
-                        result.append((peer: FoundPeer(peer: peer, subscribers: subscriberCount), value: value))
+                        result.append((peer: FoundPeer(peer: EnginePeer(peer), subscribers: subscriberCount), value: value))
                     }
                     
                     return result.sorted(by: { lhs, rhs in
@@ -3256,7 +3258,7 @@ final class StorageUsageScreenComponent: Component {
                             }
                         })))
                     } else {
-                        subItems.append(.custom(MultiplePeerAvatarsContextItem(context: context, peers: peerExceptions.prefix(3).map { EnginePeer($0.peer.peer) }, totalCount: peerExceptions.count, action: { c, _ in
+                        subItems.append(.custom(MultiplePeerAvatarsContextItem(context: context, peers: peerExceptions.prefix(3).map { $0.peer.peer }, totalCount: peerExceptions.count, action: { c, _ in
                             c.dismiss(completion: {
                                 
                             })
