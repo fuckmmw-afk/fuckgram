@@ -9,6 +9,7 @@ import SafariServices
 import TelegramPresentationData
 import TelegramUIPreferences
 import AccountContext
+import ShareController
 import SaveToCameraRoll
 import GalleryUI
 import OpenInExternalAppUI

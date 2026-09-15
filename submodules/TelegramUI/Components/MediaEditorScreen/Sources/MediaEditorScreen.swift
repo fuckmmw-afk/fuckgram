@@ -8008,8 +8008,11 @@ public final class MediaEditorScreenImpl: ViewController, MediaEditorScreen, UID
                             switch status {
                             case let .progress(progress):
                                 return .single((.progress(isVideo ? 0.5 + progress * 0.5 : progress), nil))
-                            case let .complete(resource, _):
-                                let file = stickerFile(resource: resource._asResource(), thumbnailResource: file.previewRepresentations.first?.resource, size: file.size ?? 0, dimensions: dimensions, duration: file.duration, isVideo: isVideo)
+                            case let .complete(engineResource, _):
+                                guard let resource = engineResource._asResource() as? TelegramMediaResource else {
+                                    return .fail(.generic)
+                                }
+                                let file = stickerFile(resource: resource, thumbnailResource: file.previewRepresentations.first?.resource, size: file.size ?? 0, dimensions: dimensions, duration: file.duration, isVideo: isVideo)
                                 switch action {
                                 case .send:
                                     return .single((status, nil))
@@ -8023,7 +8026,7 @@ public final class MediaEditorScreenImpl: ViewController, MediaEditorScreen, UID
                                     }
                                 case let .createStickerPack(title):
                                     let sticker = ImportSticker(
-                                        resource: .standalone(resource: resource._asResource()),
+                                        resource: .standalone(resource: resource),
                                         emojis: emojis,
                                         dimensions: dimensions,
                                         duration: duration,
@@ -8043,7 +8046,7 @@ public final class MediaEditorScreenImpl: ViewController, MediaEditorScreen, UID
                                     }
                                 case let .addToStickerPack(pack, title):
                                     let sticker = ImportSticker(
-                                        resource: .standalone(resource: resource._asResource()),
+                                        resource: .standalone(resource: resource),
                                         emojis: emojis,
                                         dimensions: dimensions,
                                         duration: duration,

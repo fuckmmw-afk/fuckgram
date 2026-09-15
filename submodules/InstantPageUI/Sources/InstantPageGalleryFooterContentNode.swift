@@ -8,6 +8,7 @@ import Photos
 import TelegramPresentationData
 import TextFormat
 import AccountContext
+import ShareController
 import GalleryUI
 import AppBundle
 

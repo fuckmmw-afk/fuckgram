@@ -6,6 +6,7 @@ import TelegramCore
 import SafariServices
 import TelegramPresentationData
 import AccountContext
+import ShareController
 import OpenInExternalAppUI
 import TelegramUIPreferences
 

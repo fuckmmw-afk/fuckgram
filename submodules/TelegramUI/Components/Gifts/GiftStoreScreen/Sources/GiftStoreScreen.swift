@@ -1239,7 +1239,7 @@ final class GiftStoreScreenComponent: Component {
             self.context = context
             self.peerId = peerId
             self.gift = gift
-            self.starGiftsContext = ResaleGiftsContext(account: context.account, giftId: gift.id)
+            self.starGiftsContext = ResaleGiftsContext(account: context.account, giftId: gift.id, forCrafting: false)
             
             super.init()
             
