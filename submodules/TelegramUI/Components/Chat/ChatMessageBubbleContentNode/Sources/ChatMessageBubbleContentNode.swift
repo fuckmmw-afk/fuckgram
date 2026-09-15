@@ -35,6 +35,7 @@ public struct ChatMessageBubbleContentProperties {
     public let hidesHeaders: Bool
     public let avatarOffset: CGFloat?
     public let isDetached: Bool
+    public let wantsReactionsOutside: Bool
     
     public init(
         hidesSimpleAuthorHeader: Bool,
@@ -45,7 +46,8 @@ public struct ChatMessageBubbleContentProperties {
         shareButtonOffset: CGPoint? = nil,
         hidesHeaders: Bool = false,
         avatarOffset: CGFloat? = nil,
-        isDetached: Bool = false
+        isDetached: Bool = false,
+        wantsReactionsOutside: Bool = false
     ) {
         self.hidesSimpleAuthorHeader = hidesSimpleAuthorHeader
         self.headerSpacing = headerSpacing
@@ -56,6 +58,7 @@ public struct ChatMessageBubbleContentProperties {
         self.hidesHeaders = hidesHeaders
         self.avatarOffset = avatarOffset
         self.isDetached = isDetached
+        self.wantsReactionsOutside = wantsReactionsOutside
     }
 }
 

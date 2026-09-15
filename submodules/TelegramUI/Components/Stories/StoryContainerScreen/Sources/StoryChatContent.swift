@@ -357,6 +357,7 @@ public final class StoryContentContextImpl: StoryContentContext {
                                 isMy: true,
                                 myReaction: nil,
                                 forwardInfo: pendingForwardsInfo[item.randomId],
+                                music: item.music.flatMap(EngineMedia.init),
                                 author: nil,
                                 folderIds: item.folders
                             ))
