@@ -388,14 +388,8 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
                 var secondaryColor: UIColor? = nil
                 var tertiaryColor: UIColor? = nil
                 
-                let nameColors: PeerNameColors.Colors?
-                switch author?.nameColor {
-                case let .preset(nameColor):
-                    nameColors = item.context.peerNameColors.get(nameColor, dark: item.presentationData.theme.theme.overallDarkAppearance)
-                case let .collectible(collectibleColor):
-                    nameColors = collectibleColor.peerNameColors(dark: item.presentationData.theme.theme.overallDarkAppearance)
-                default:
-                    nameColors = nil
+                let nameColors = author?.nameColor.flatMap {
+                    item.context.peerNameColors.get($0, dark: item.presentationData.theme.theme.overallDarkAppearance)
                 }
                 
                 let codeBlockBackgroundColor: UIColor

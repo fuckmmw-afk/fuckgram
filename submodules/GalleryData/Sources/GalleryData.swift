@@ -34,13 +34,13 @@ public enum ChatMessageGalleryControllerData {
 
 private func instantPageBlockMedia(pageId: MediaId, block: InstantPageBlock, media: [MediaId: Media], counter: inout Int) -> [InstantPageGalleryEntry] {
     switch block {
-        case let .image(id, caption, _, _):
+        case let .image(id, caption, _, _, _):
             if let m = media[id] {
                 let result = [InstantPageGalleryEntry(index: Int32(counter), pageId: pageId, media: InstantPageMedia(index: counter, media: EngineMedia(m), url: nil, caption: caption.text, credit: caption.credit), caption: caption.text, credit: caption.credit, location: InstantPageGalleryEntryLocation(position: Int32(counter), totalCount: 0))]
                 counter += 1
                 return result
             }
-        case let .video(id, caption, _, _):
+        case let .video(id, caption, _, _, _):
             if let m = media[id] {
                 let result = [InstantPageGalleryEntry(index: Int32(counter), pageId: pageId, media: InstantPageMedia(index: counter, media: EngineMedia(m), url: nil, caption: caption.text, credit: caption.credit), caption: caption.text, credit: caption.credit, location: InstantPageGalleryEntryLocation(position: Int32(counter), totalCount: 0))]
                 counter += 1
@@ -203,7 +203,7 @@ public func chatMessageGalleryControllerData(context: AccountContext, chatLocati
             }
         }
         
-        let gallery = InstantPageGalleryController(context: context, userLocation: chatLocation?.peerId.flatMap(MediaResourceUserLocation.peer) ?? .other, webPage: webPage, message: message, entries: instantPageMedia, centralIndex: centralIndex, fromPlayingVideo: autoplayingVideo, landscape: landscape, timecode: timecode, replaceRootController: { [weak navigationController] controller, ready in
+        let gallery = InstantPageGalleryController(context: context, userLocation: chatLocation?.peerId.flatMap(MediaResourceUserLocation.peer) ?? .other, webPage: webPage, message: EngineMessage(message), entries: instantPageMedia, centralIndex: centralIndex, fromPlayingVideo: autoplayingVideo, landscape: landscape, timecode: timecode, replaceRootController: { [weak navigationController] controller, ready in
             if let navigationController = navigationController {
                 navigationController.replaceTopController(controller, animated: false, ready: ready)
             }
