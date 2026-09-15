@@ -145,12 +145,14 @@ final class InstantPageControllerNode: ASDisplayNode, ASScrollViewDelegate {
         self.navigationBar.back = navigateBack
         self.navigationBar.share = { [weak self] in
             if let strongSelf = self, let (webPage, _) = strongSelf.webPage, case let .Loaded(content) = webPage.content {
-                let shareController = context.sharedContext.makeShareController(context: context, params: ShareControllerParams(subject: .url(content.url), actionCompleted: { [weak self] in
+                let shareController = ShareController(context: context, subject: .url(content.url))
+                shareController.actionCompleted = { [weak self] in
                     if let strongSelf = self {
                         let presentationData = context.sharedContext.currentPresentationData.with { $0 }
                         strongSelf.present(UndoOverlayController(presentationData: presentationData, content: .linkCopied(title: nil, text: presentationData.strings.Conversation_LinkCopied), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), nil)
                     }
-                }, completed: { [weak self] peerIds in
+                }
+                shareController.completed = { [weak self] peerIds in
                     let _ = (context.engine.data.get(
                         EngineDataList(
                             peerIds.map(TelegramEngine.EngineData.Item.Peer.Peer.init)
@@ -202,7 +204,7 @@ final class InstantPageControllerNode: ASDisplayNode, ASScrollViewDelegate {
                             }), nil)
                         }
                     })
-                }))
+                }
                 strongSelf.present(shareController, nil)
             }
         }
@@ -256,7 +258,7 @@ final class InstantPageControllerNode: ASDisplayNode, ASScrollViewDelegate {
                     updateLayout = true
                     animated = true
                 }
-                if previousSettings.fontSize != settings.fontSize || previousSettings.lineSpacingFactor != settings.lineSpacingFactor || previousSettings.forceSerif != settings.forceSerif {
+                if previousSettings.fontSize != settings.fontSize || previousSettings.forceSerif != settings.forceSerif {
                     animated = false
                     updateLayout = true
                 }
@@ -626,7 +628,7 @@ final class InstantPageControllerNode: ASDisplayNode, ASScrollViewDelegate {
                         guard let strongSelf = self, let controller = strongSelf.controller else {
                             return
                         }
-                        let pinchController = makePinchController(sourceNode: sourceNode, getContentAreaInScreenSpace: {
+                        let pinchController = PinchController(sourceNode: sourceNode, getContentAreaInScreenSpace: {
                             guard let strongSelf = self else {
                                 return CGRect()
                             }
@@ -1415,16 +1417,16 @@ final class InstantPageControllerNode: ASDisplayNode, ASScrollViewDelegate {
         let controller = makeContextMenuController(actions: [ContextMenuAction(content: .text(title: self.strings.Conversation_ContextMenuCopy, accessibilityLabel: self.strings.Conversation_ContextMenuCopy), action: { [weak self] in
             if let strongSelf = self, case let .image(image) = media.media {
                 let media = TelegramMediaImage(imageId: MediaId(namespace: 0, id: 0), representations: image.representations, immediateThumbnailData: image.immediateThumbnailData, reference: nil, partialReference: nil, flags: [])
-                let _ = copyToPasteboard(context: strongSelf.context, userLocation: strongSelf.sourceLocation.userLocation, mediaReference: .standalone(media: media)).start()
+                let _ = copyToPasteboard(context: strongSelf.context, postbox: strongSelf.context.account.postbox, userLocation: strongSelf.sourceLocation.userLocation, mediaReference: .standalone(media: media)).start()
             }
         }), ContextMenuAction(content: .text(title: self.strings.Conversation_LinkDialogSave, accessibilityLabel: self.strings.Conversation_LinkDialogSave), action: { [weak self] in
             if let strongSelf = self, case let .image(image) = media.media {
                 let media = TelegramMediaImage(imageId: MediaId(namespace: 0, id: 0), representations: image.representations, immediateThumbnailData: image.immediateThumbnailData, reference: nil, partialReference: nil, flags: [])
-                let _ = saveToCameraRoll(context: strongSelf.context, userLocation: strongSelf.sourceLocation.userLocation, mediaReference: .standalone(media: media)).start()
+                let _ = saveToCameraRoll(context: strongSelf.context, postbox: strongSelf.context.account.postbox, userLocation: strongSelf.sourceLocation.userLocation, mediaReference: .standalone(media: media)).start()
             }
         }), ContextMenuAction(content: .text(title: self.strings.Conversation_ContextMenuShare, accessibilityLabel: self.strings.Conversation_ContextMenuShare), action: { [weak self] in
             if let strongSelf = self, let (webPage, _) = strongSelf.webPage, case let .image(image) = media.media {
-                strongSelf.present(strongSelf.context.sharedContext.makeShareController(context: strongSelf.context, params: ShareControllerParams(subject: .image(image.representations.map({ ImageRepresentationWithReference(representation: $0, reference: MediaResourceReference.media(media: .webPage(webPage: WebpageReference(webPage), media: image), resource: $0.resource)) })))), nil)
+                strongSelf.present(ShareController(context: strongSelf.context, subject: .image(image.representations.map({ ImageRepresentationWithReference(representation: $0, reference: MediaResourceReference.media(media: .webPage(webPage: WebpageReference(webPage), media: image), resource: $0.resource)) }))), nil)
             }
         })], catchTapsOutside: true)
         self.present(controller, ContextMenuControllerPresentationArguments(sourceNodeAndRect: { [weak self] in
@@ -1538,7 +1540,7 @@ final class InstantPageControllerNode: ASDisplayNode, ASScrollViewDelegate {
                     }
                 }), ContextMenuAction(content: .text(title: strings.Conversation_ContextMenuShare, accessibilityLabel: strings.Conversation_ContextMenuShare), action: { [weak self] in
                     if let strongSelf = self, let (webPage, _) = strongSelf.webPage, case let .Loaded(content) = webPage.content {
-                        strongSelf.present(strongSelf.context.sharedContext.makeShareController(context: strongSelf.context, params: ShareControllerParams(subject: .quote(text: text, url: content.url))), nil)
+                        strongSelf.present(ShareController(context: strongSelf.context, subject: .quote(text: text, url: content.url)), nil)
                     }
                 })]
                 
@@ -1555,7 +1557,14 @@ final class InstantPageControllerNode: ASDisplayNode, ASScrollViewDelegate {
                                 mode: .translate(fromLanguage: language, applyResult: nil),
                                 inputText: .plain(text: text, entities: []),
                                 copyResult: { [weak self] text in
-                                    storeComposedRichMessageInPasteboard(text)
+                                    switch text {
+                                    case let .plain(value, entities):
+                                        storeMessageTextInPasteboard(value, entities: entities)
+                                    case let .rich(instantPage):
+                                        UIPasteboard.general.string = chatInputContent(fromInstantPage: instantPage).plainText
+                                    case .empty:
+                                        break
+                                    }
                                     self?.present(UndoOverlayController(presentationData: presentationData, content: .copy(text: strings.Conversation_TextCopied), elevatedLayout: true, animateInAsReplacement: false, action: { _ in return false }), nil)
                                 },
                                 translateChat: nil
@@ -1771,7 +1780,7 @@ final class InstantPageControllerNode: ASDisplayNode, ASScrollViewDelegate {
                                     let _ = (strongSelf.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peer.id))
                                     |> deliverOnMainQueue).start(next: { peer in
                                         if let strongSelf = self, let peer = peer {
-                                            if let controller = strongSelf.context.sharedContext.makePeerInfoController(context: strongSelf.context, updatedPresentationData: nil, peer: peer, mode: .generic, avatarInitiallyExpanded: false, fromChat: false, requestsContext: nil) {
+                                            if let controller = strongSelf.context.sharedContext.makePeerInfoController(context: strongSelf.context, updatedPresentationData: nil, peer: peer._asPeer(), mode: .generic, avatarInitiallyExpanded: false, fromChat: false, requestsContext: nil) {
                                                 strongSelf.getNavigationController()?.pushViewController(controller)
                                             }
                                         }
@@ -1797,12 +1806,12 @@ final class InstantPageControllerNode: ASDisplayNode, ASScrollViewDelegate {
     
     private func openUrlIn(_ url: InstantPageUrlItem) {
         let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
-        let actionSheet = OpenInOptionsScreen(context: self.context, item: .url(url: url.url), openUrl: { [weak self] url in
+        let actionSheet = OpenInActionSheetController(context: self.context, item: .url(url: url.url), openUrl: { [weak self] url in
             if let strongSelf = self, let navigationController = strongSelf.getNavigationController() {
                 strongSelf.context.sharedContext.openExternalUrl(context: strongSelf.context, urlContext: .generic, url: url, forceExternal: true, presentationData: presentationData, navigationController: navigationController, dismissInput: {})
             }
         })
-        self.pushController(actionSheet)
+        self.present(actionSheet, nil)
     }
     
     private func mediasFromItems(_ items: [InstantPageItem]) -> [InstantPageMedia] {

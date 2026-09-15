@@ -256,7 +256,7 @@ public final class WallpaperPatternPanelNode: ASDisplayNode {
         
         self.addSubnode(self.titleNode)
         self.addSubnode(self.labelNode)
-        self.disposable = ((telegramWallpapers(postbox: context.account.postbox, network: context.account.network)
+        self.disposable = ((context.engine.themes.wallpapers()
         |> map { wallpapers -> [TelegramWallpaper] in
             var existingIds = Set<MediaId>()
 

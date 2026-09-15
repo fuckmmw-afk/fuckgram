@@ -98,6 +98,7 @@ final class InstantPageV2AudioContentNode: ASDisplayNode {
         if file.isMusic, file.fileName?.lowercased().hasSuffix(".ogg") != true, let message = message {
             let fileRef: FileMediaReference = .message(message: message, media: file)
             albumArtImage = playerAlbumArt(
+                postbox: context.account.postbox,
                 engine: context.engine,
                 fileReference: fileRef,
                 albumArt: SharedMediaPlaybackAlbumArt(

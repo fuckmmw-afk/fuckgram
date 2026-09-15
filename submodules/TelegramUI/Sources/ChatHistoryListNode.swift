@@ -838,7 +838,7 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
                                 defaultBannedRights: nil,
                                 usernames: [],
                                 storiesHidden: nil,
-                                nameColor: .blue,
+                                nameColor: .preset(.blue),
                                 backgroundEmojiId: nil,
                                 profileColor: nil,
                                 profileBackgroundEmojiId: nil,

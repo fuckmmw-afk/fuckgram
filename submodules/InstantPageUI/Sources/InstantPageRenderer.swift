@@ -1704,7 +1704,7 @@ final class InstantPageV2ListMarkerView: UIView, InstantPageItemView {
                 hasInset: false,
                 hasShadow: false
             )
-            let checkNode = CheckNode(theme: checkNodeTheme, content: .check(isRectangle: true))
+            let checkNode = CheckNode(theme: checkNodeTheme, content: .check)
             checkNode.displaysAsynchronously = false
             checkNode.isUserInteractionEnabled = false
             checkNode.frame = CGRect(origin: .zero, size: item.frame.size)

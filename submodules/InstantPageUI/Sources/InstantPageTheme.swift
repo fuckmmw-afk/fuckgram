@@ -405,13 +405,13 @@ func instantPageThemeTypeForSettingsAndTime(themeSettings: PresentationThemeSett
 public func instantPageThemeForType(_ type: InstantPageThemeType, settings: InstantPagePresentationSettings) -> InstantPageTheme {
     switch type {
     case .light:
-        return lightTheme.withUpdatedFontStyles(sizeMultiplier: fontSizeMultiplierForVariant(settings.fontSize), lineSpacingFactor: settings.lineSpacingFactor, forceSerif: settings.forceSerif)
+        return lightTheme.withUpdatedFontStyles(sizeMultiplier: fontSizeMultiplierForVariant(settings.fontSize), lineSpacingFactor: 1.0, forceSerif: settings.forceSerif)
     case .sepia:
-        return sepiaTheme.withUpdatedFontStyles(sizeMultiplier: fontSizeMultiplierForVariant(settings.fontSize), lineSpacingFactor: settings.lineSpacingFactor, forceSerif: settings.forceSerif)
+        return sepiaTheme.withUpdatedFontStyles(sizeMultiplier: fontSizeMultiplierForVariant(settings.fontSize), lineSpacingFactor: 1.0, forceSerif: settings.forceSerif)
     case .gray:
-        return grayTheme.withUpdatedFontStyles(sizeMultiplier: fontSizeMultiplierForVariant(settings.fontSize), lineSpacingFactor: settings.lineSpacingFactor, forceSerif: settings.forceSerif)
+        return grayTheme.withUpdatedFontStyles(sizeMultiplier: fontSizeMultiplierForVariant(settings.fontSize), lineSpacingFactor: 1.0, forceSerif: settings.forceSerif)
     case .dark:
-        return darkTheme.withUpdatedFontStyles(sizeMultiplier: fontSizeMultiplierForVariant(settings.fontSize), lineSpacingFactor: settings.lineSpacingFactor, forceSerif: settings.forceSerif)
+        return darkTheme.withUpdatedFontStyles(sizeMultiplier: fontSizeMultiplierForVariant(settings.fontSize), lineSpacingFactor: 1.0, forceSerif: settings.forceSerif)
     }
 }
 

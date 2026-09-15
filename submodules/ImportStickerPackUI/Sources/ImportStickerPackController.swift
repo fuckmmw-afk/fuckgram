@@ -96,7 +96,7 @@ public final class ImportStickerPackController: ViewController, StandalonePresen
                                         return (sticker.uuid, .loading, nil)
                                     case let .complete(resource, mimeType):
                                         if ["application/x-tgsticker", "video/webm"].contains(mimeType) {
-                                            return (sticker.uuid, .verified, EngineMediaResource(resource))
+                                            return (sticker.uuid, .verified, resource)
                                         } else {
                                             return (sticker.uuid, .declined, nil)
                                         }
@@ -165,4 +165,3 @@ public final class ImportStickerPackController: ViewController, StandalonePresen
         self.controllerNode.containerLayoutUpdated(layout, navigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
     }
 }
-

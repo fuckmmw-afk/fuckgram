@@ -120,3 +120,38 @@ public func uploadSecureIdFile(context: SecureIdAccessContext, engine: TelegramE
         }
     }
 }
+
+// Telegram 11.15 callers own Postbox and Network directly. Keep this narrow
+// boundary overload so legacy Passport UI does not need a newer AccountContext.
+public func uploadSecureIdFile(context: SecureIdAccessContext, postbox: Postbox, network: Network, resource: MediaResource) -> Signal<UploadSecureIdFileResult, UploadSecureIdFileError> {
+    return postbox.mediaBox.resourceData(resource)
+    |> mapError { _ -> UploadSecureIdFileError in
+    }
+    |> mapToSignal { next -> Signal<UploadSecureIdFileResult, UploadSecureIdFileError> in
+        if !next.complete {
+            return .complete()
+        }
+
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: next.path)) else {
+            return .fail(.generic)
+        }
+        guard let encryptedData = encryptedSecureIdFile(context: context, data: data) else {
+            return .fail(.generic)
+        }
+
+        return multipartUpload(network: network, postbox: postbox, source: .data(encryptedData.data), encrypt: false, tag: TelegramMediaResourceFetchTag(statsCategory: .image, userContentType: .image), hintFileSize: nil, hintFileIsLarge: false, forceNoBigParts: false)
+        |> mapError { _ -> UploadSecureIdFileError in
+            return .generic
+        }
+        |> mapToSignal { result -> Signal<UploadSecureIdFileResult, UploadSecureIdFileError> in
+            switch result {
+            case let .progress(value):
+                return .single(.progress(value))
+            case let .inputFile(.inputFile(fileData)):
+                return .single(.result(UploadedSecureIdFile(id: fileData.id, parts: fileData.parts, md5Checksum: fileData.md5Checksum, fileHash: encryptedData.hash, encryptedSecret: encryptedData.encryptedSecret), encryptedData.data))
+            default:
+                return .fail(.generic)
+            }
+        }
+    }
+}

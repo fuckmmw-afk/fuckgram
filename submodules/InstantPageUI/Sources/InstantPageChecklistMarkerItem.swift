@@ -71,7 +71,7 @@ final class InstantPageChecklistMarkerNode: ASDisplayNode, InstantPageNode {
     
     init(theme: InstantPageTheme, checked: Bool) {
         self.checked = checked
-        self.checkNode = CheckNode(theme: instantPageChecklistMarkerTheme(theme: theme), content: .check(isRectangle: true))
+        self.checkNode = CheckNode(theme: instantPageChecklistMarkerTheme(theme: theme), content: .check)
         
         super.init()
         

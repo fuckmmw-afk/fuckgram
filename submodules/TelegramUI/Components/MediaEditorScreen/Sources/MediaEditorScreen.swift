@@ -3730,7 +3730,7 @@ public final class MediaEditorScreenImpl: ViewController, MediaEditorScreen, UID
                     }
                 } else if case let .gift(gift) = subject {
                     isGift = true
-                    let media: [Media] = [TelegramMediaAction(action: .starGiftUnique(gift: .unique(gift), isUpgrade: false, isTransferred: false, savedToProfile: false, canExportDate: nil, transferStars: nil, isRefunded: false, isPrepaidUpgrade: false, peerId: nil, senderId: nil, savedId: nil, resaleAmount: nil, canTransferDate: nil, canResaleDate: nil))]
+                    let media: [Media] = [TelegramMediaAction(action: .starGiftUnique(gift: .unique(gift), isUpgrade: false, isTransferred: false, savedToProfile: false, canExportDate: nil, transferStars: nil, isRefunded: false, isPrepaidUpgrade: false, peerId: nil, senderId: nil, savedId: nil, resaleAmount: nil, canTransferDate: nil, canResaleDate: nil, dropOriginalDetailsStars: nil, assigned: false, fromOffer: false, canCraftAt: nil, isCrafted: false))]
                     let message = Message(stableId: 0, stableVersion: 0, id: MessageId(peerId: self.context.account.peerId, namespace: Namespaces.Message.Cloud, id: -1), globallyUniqueId: nil, groupingKey: nil, groupInfo: nil, threadId: nil, timestamp: 0, flags: [], tags: [], globalTags: [], localTags: [], customTags: [], forwardInfo: nil, author: nil, text: "", attributes: [], media: media, peers: SimpleDictionary(), associatedMessages: SimpleDictionary(), associatedMessageIds: [], associatedMedia: [:], associatedThreadInfo: nil, associatedStories: [:])
                     messages = .single([message])
                 } else {
@@ -8001,7 +8001,7 @@ public final class MediaEditorScreenImpl: ViewController, MediaEditorScreen, UID
                     return .single((.progress(progress * 0.5), nil))
                 case let .complete(resource):
                     if let resource = resource as? CloudDocumentMediaResource {
-                        return .single((.progress(1.0), nil)) |> then(.single((.complete(resource, mimeType), nil)))
+                        return .single((.progress(1.0), nil)) |> then(.single((.complete(EngineMediaResource(resource), mimeType), nil)))
                     } else {
                         return context.engine.stickers.uploadSticker(peer: peer._asPeer(), resource: resource, thumbnail: file.previewRepresentations.first?.resource, alt: "", dimensions: dimensions, duration: duration, mimeType: mimeType)
                         |> mapToSignal { status -> Signal<(UploadStickerStatus, (StickerPackReference, String)?), UploadStickerError> in
@@ -8009,7 +8009,7 @@ public final class MediaEditorScreenImpl: ViewController, MediaEditorScreen, UID
                             case let .progress(progress):
                                 return .single((.progress(isVideo ? 0.5 + progress * 0.5 : progress), nil))
                             case let .complete(resource, _):
-                                let file = stickerFile(resource: resource, thumbnailResource: file.previewRepresentations.first?.resource, size: file.size ?? 0, dimensions: dimensions, duration: file.duration, isVideo: isVideo)
+                                let file = stickerFile(resource: resource._asResource(), thumbnailResource: file.previewRepresentations.first?.resource, size: file.size ?? 0, dimensions: dimensions, duration: file.duration, isVideo: isVideo)
                                 switch action {
                                 case .send:
                                     return .single((status, nil))
@@ -8023,7 +8023,7 @@ public final class MediaEditorScreenImpl: ViewController, MediaEditorScreen, UID
                                     }
                                 case let .createStickerPack(title):
                                     let sticker = ImportSticker(
-                                        resource: .standalone(resource: resource),
+                                        resource: .standalone(resource: resource._asResource()),
                                         emojis: emojis,
                                         dimensions: dimensions,
                                         duration: duration,
@@ -8043,7 +8043,7 @@ public final class MediaEditorScreenImpl: ViewController, MediaEditorScreen, UID
                                     }
                                 case let .addToStickerPack(pack, title):
                                     let sticker = ImportSticker(
-                                        resource: .standalone(resource: resource),
+                                        resource: .standalone(resource: resource._asResource()),
                                         emojis: emojis,
                                         dimensions: dimensions,
                                         duration: duration,
