@@ -408,7 +408,7 @@ public struct ReplyMarkupButton: PostboxCoding, Equatable {
     public let action: ReplyMarkupButtonAction
     public let style: Style?
     
-    public init(title: String, titleWhenForwarded: String?, action: ReplyMarkupButtonAction, style: Style?) {
+    public init(title: String, titleWhenForwarded: String?, action: ReplyMarkupButtonAction, style: Style? = nil) {
         self.title = title
         self.titleWhenForwarded = titleWhenForwarded
         self.action = action

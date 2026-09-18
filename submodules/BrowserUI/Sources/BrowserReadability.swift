@@ -343,6 +343,8 @@ private func trimStart(_ input: RichText) -> RichText {
         }
     case .image:
         break
+    default:
+        break
     }
     return text
 }
@@ -384,6 +386,8 @@ private func trimEnd(_ input: RichText) -> RichText {
             text = .concat(array)
         }
     case .image:
+        break
+    default:
         break
     }
     return text
@@ -428,6 +432,8 @@ private func trim(_ input: RichText) -> RichText {
         }
     case .image:
         break
+    default:
+        break
     }
     return text
 }
@@ -469,6 +475,8 @@ private func addNewLine(_ input: RichText) -> RichText {
             text = .concat(array)
         }
     case .image:
+        break
+    default:
         break
     }
     return text
@@ -587,10 +595,10 @@ private func parseList(_ input: [String: Any], _ url: String, _ media: inout [Me
             if parseAsBlocks {
                 let blocks = parsePageBlocks(subcontent, url, &media)
                 if !blocks.isEmpty {
-                    items.append(.blocks(blocks, nil))
+                    items.append(.blocks(blocks, nil, nil))
                 }
             } else {
-                items.append(.text(trim(parseRichText(item, &media)), nil))
+                items.append(.text(trim(parseRichText(item, &media)), nil, nil))
             }
         }
     }
@@ -667,7 +675,8 @@ private func parseImage(_ input: [String: Any], _ media: inout [MediaId: Media])
         id: id,
         caption: caption,
         url: nil,
-        webpageId: nil
+        webpageId: nil,
+        spoiler: false
     )
 }
 
@@ -729,8 +738,8 @@ private func parseFigure(_ input: [String: Any], _ media: inout [MediaId: Media]
     guard var block else {
         return nil
     }
-    if let caption, case let .image(id, _, url, webpageId) = block {
-        block = .image(id: id, caption: InstantPageCaption(text: caption, credit: .empty), url: url, webpageId: webpageId)
+    if let caption, case let .image(id, _, url, webpageId, spoiler) = block {
+        block = .image(id: id, caption: InstantPageCaption(text: caption, credit: .empty), url: url, webpageId: webpageId, spoiler: spoiler)
     }
     return block
 }
@@ -750,9 +759,9 @@ private func parsePageBlocks(_ input: [Any], _ url: String, _ media: inout [Medi
             case "h3", "h4", "h5", "h6":
                 result.append(.subheader(trim(parseRichText(item, &media))))
             case "pre":
-                result.append(.preformatted(.fixed(trim(parseRichText(item, &media)))))
+                result.append(.preformatted(text: .fixed(trim(parseRichText(item, &media))), language: nil))
             case "blockquote":
-                result.append(.blockQuote(text: .italic(trim(parseRichText(item, &media))), caption: .empty))
+                result.append(.blockQuote(blocks: [.paragraph(.italic(trim(parseRichText(item, &media))))], caption: .empty, collapsed: nil))
             case "img":
                 if let image = parseImage(item, &media) {
                     result.append(image)

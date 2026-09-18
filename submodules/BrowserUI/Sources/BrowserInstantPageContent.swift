@@ -471,7 +471,7 @@ final class BrowserInstantPageContent: UIView, BrowserContent, UIScrollViewDeleg
             return
         }
         
-        let currentLayout = instantPageLayoutForWebPage(webPage, instantPage: instantPage, userLocation: self.sourceLocation.userLocation, boundingWidth: size.width, safeInset: insets.left, strings: self.presentationData.strings, theme: self.theme, dateTimeFormat: self.presentationData.dateTimeFormat, webEmbedHeights: self.currentWebEmbedHeights)
+        let currentLayout = instantPageLayoutForWebPage(webPage, instantPage: instantPage, userLocation: self.sourceLocation.userLocation, boundingWidth: size.width, sideInset: insets.left, safeInset: insets.left, strings: self.presentationData.strings, theme: self.theme, dateTimeFormat: self.presentationData.dateTimeFormat, webEmbedHeights: self.currentWebEmbedHeights)
         
         for (_, tileNode) in self.visibleTiles {
             tileNode.removeFromSupernode()
@@ -1088,7 +1088,7 @@ final class BrowserInstantPageContent: UIView, BrowserContent, UIScrollViewDeleg
                     }
                 }
             }
-            self.context.sharedContext.mediaManager.setPlaylist((self.context, InstantPageMediaPlaylist(webPage: webPage, items: medias, initialItemIndex: initialIndex)), type: file.isVoice ? .voice : .music, control: .playback(.play))
+            self.context.sharedContext.mediaManager.setPlaylist((self.context, InstantPageMediaPlaylist(playlistId: .instantPage(webpageId: webPage.webpageId), webPage: webPage, messageReference: nil, items: medias, initialItemIndex: initialIndex)), type: file.isVoice ? .voice : .music, control: .playback(.play))
             return
         }
         
