@@ -3002,6 +3002,8 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                                 } else {
                                     match = false
                                 }
+                            case .createBot:
+                                match = false
                             }
                             if match {
                                 return true
