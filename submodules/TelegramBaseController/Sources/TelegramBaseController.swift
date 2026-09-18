@@ -1031,10 +1031,10 @@ open class TelegramBaseController: ViewController, KeyShortcutResponder {
                         var items: [ActionSheetItem] = []
                         var isGroup = false
                         for peer in peers {
-                            if peer.peer is TelegramGroup {
+                            if case .legacyGroup = peer.peer {
                                 isGroup = true
                                 break
-                            } else if let peer = peer.peer as? TelegramChannel, case .group = peer.info {
+                            } else if case let .channel(peer) = peer.peer, case .group = peer.info {
                                 isGroup = true
                                 break
                             }
@@ -1046,14 +1046,14 @@ open class TelegramBaseController: ViewController, KeyShortcutResponder {
                             if peer.peer.id.namespace == Namespaces.Peer.CloudUser {
                                 subtitle = presentationData.strings.VoiceChat_PersonalAccount
                             } else if let subscribers = peer.subscribers {
-                                if let peer = peer.peer as? TelegramChannel, case .broadcast = peer.info {
+                                if case let .channel(peer) = peer.peer, case .broadcast = peer.info {
                                     subtitle = strongSelf.presentationData.strings.Conversation_StatusSubscribers(subscribers)
                                 } else {
                                     subtitle = strongSelf.presentationData.strings.Conversation_StatusMembers(subscribers)
                                 }
                             }
                             
-                            items.append(VoiceChatPeerActionSheetItem(context: context, peer: EnginePeer(peer.peer), title: EnginePeer(peer.peer).displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder), subtitle: subtitle ?? "", action: {
+                            items.append(VoiceChatPeerActionSheetItem(context: context, peer: peer.peer, title: peer.peer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder), subtitle: subtitle ?? "", action: {
                                 dismissAction()
                                 completion(peer.peer.id)
                             }))
