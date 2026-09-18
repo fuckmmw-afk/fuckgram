@@ -965,12 +965,7 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
                             if self.displayContentsUnderSpoilers {
                                 pageView.setDisplayContentsUnderSpoilers(true, atLocation: nil, animated: false)
                             }
-                            let showTextAsPlaceholder = false
-                            var isTranslating = resolvedContent.isTranslating
-                            if showTextAsPlaceholder {
-                                isTranslating = true
-                            }
-                            self.updateIsTranslating(isTranslating, showTextAsPlaceholder: showTextAsPlaceholder)
+                            self.updateIsTranslating(resolvedContent.isTranslating, showTextAsPlaceholder: false)
                             // Continue an in-flight anchor scroll that is waiting on a <details>
                             // expansion to re-lay-out. This runs on EVERY apply pass (not only the
                             // expand-triggered one), but only does anything while a scroll is pending

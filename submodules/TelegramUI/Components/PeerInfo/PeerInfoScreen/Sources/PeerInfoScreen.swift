@@ -8672,7 +8672,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
         let defaultJoinAsPeerId = defaultJoinAsPeerId ?? self.context.account.peerId
         let currentAccountPeer = self.context.account.postbox.loadedPeerWithId(self.context.account.peerId)
         |> map { peer in
-            return [FoundPeer(peer: peer, subscribers: nil)]
+            return [FoundPeer(peer: EnginePeer(peer), subscribers: nil)]
         }
         let _ = (combineLatest(queue: Queue.mainQueue(), currentAccountPeer, self.displayAsPeersPromise.get() |> take(1))
         |> map { currentAccountPeer, availablePeers -> [FoundPeer] in
@@ -8787,7 +8787,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
         let dismissOnSelection = contextController == nil
         let currentAccountPeer = self.context.account.postbox.loadedPeerWithId(context.account.peerId)
         |> map { peer in
-            return [FoundPeer(peer: peer, subscribers: nil)]
+            return [FoundPeer(peer: EnginePeer(peer), subscribers: nil)]
         }
         let _ = (combineLatest(queue: Queue.mainQueue(), currentAccountPeer, self.displayAsPeersPromise.get() |> take(1))
         |> map { currentAccountPeer, availablePeers -> [FoundPeer] in

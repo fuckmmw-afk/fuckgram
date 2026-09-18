@@ -996,7 +996,7 @@ open class TelegramBaseController: ViewController, KeyShortcutResponder {
         self.context.joinGroupCall(peerId: peerId, invite: invite, requestJoinAsPeerId: { completion in
             let currentAccountPeer = context.account.postbox.loadedPeerWithId(context.account.peerId)
             |> map { peer in
-                return [FoundPeer(peer: peer, subscribers: nil)]
+                return [FoundPeer(peer: EnginePeer(peer), subscribers: nil)]
             }
             
             let _ = (combineLatest(
