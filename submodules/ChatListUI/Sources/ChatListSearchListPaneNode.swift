@@ -2592,7 +2592,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                     searchLocations = [.peer(peerId: peerId, fromId: nil, tags: tagMask, reactions: nil, threadId: nil, minDate: options.date?.0, maxDate: options.date?.1)]
                 } else {
                     if case let .chatList(groupId) = location, case .archive = groupId {
-                        searchLocations = [.group(groupId: groupId._asGroup(), tags: tagMask, minDate: options.date?.0, maxDate: options.date?.1)]
+                        searchLocations = [.general(scope: .everywhere, groupId: groupId._asGroup(), tags: tagMask, minDate: options.date?.0, maxDate: options.date?.1, folderId: nil, communityId: nil)]
                     } else {
                         searchLocations = [.general(scope: searchScope, groupId: nil, tags: tagMask, minDate: options.date?.0, maxDate: options.date?.1, folderId: nil, communityId: nil)]
                     }
@@ -2603,7 +2603,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                 } else if case let .forum(peerId) = location {
                     searchLocations = [.peer(peerId: peerId, fromId: nil, tags: tagMask, reactions: nil, threadId: nil, minDate: nil, maxDate: nil), .general(scope: .everywhere, groupId: nil, tags: tagMask, minDate: nil, maxDate: nil, folderId: nil, communityId: nil)]
                 } else if case let .chatList(groupId) = location, case .archive = groupId {
-                    searchLocations = [.group(groupId: groupId._asGroup(), tags: tagMask, minDate: nil, maxDate: nil)]
+                    searchLocations = [.general(scope: .everywhere, groupId: groupId._asGroup(), tags: tagMask, minDate: nil, maxDate: nil, folderId: nil, communityId: nil)]
                 } else {
                     searchLocations = [.general(scope: searchScope, groupId: nil, tags: tagMask, minDate: nil, maxDate: nil, folderId: nil, communityId: nil)]
                 }
