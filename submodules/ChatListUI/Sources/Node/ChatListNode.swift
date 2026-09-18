@@ -2611,6 +2611,8 @@ public final class ChatListNode: ListView {
                                     } else {
                                         match = false
                                     }
+                                case .createBot:
+                                    match = false
                                 }
                                 if match {
                                     return true

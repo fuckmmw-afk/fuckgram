@@ -1020,13 +1020,15 @@ public enum ChatListSearchEntry: Comparable, Identifiable {
                     }
                 }
                 if filter.contains(.onlyPrivateChats) {
-                    if !(peer.peer is TelegramUser || peer.peer is TelegramSecretChat) {
+                    if case .user = peer.peer {
+                    } else if case .secretChat = peer.peer {
+                    } else {
                         enabled = false
                     }
                 }
                 if filter.contains(.onlyGroups) {
-                    if let _ = peer.peer as? TelegramGroup {
-                    } else if let peer = peer.peer as? TelegramChannel, case .group = peer.info {
+                    if case .legacyGroup = peer.peer {
+                    } else if case let .channel(peer) = peer.peer, case .group = peer.info {
                     } else {
                         enabled = false
                     }
@@ -1034,9 +1036,9 @@ public enum ChatListSearchEntry: Comparable, Identifiable {
                 
                 var suffixString = ""
                 if let subscribers = peer.subscribers, subscribers != 0 {
-                    if peer.peer is TelegramUser {
+                    if case .user = peer.peer {
                         suffixString = ", \(strings.Conversation_StatusBotSubscribers(subscribers))"
-                    } else if let channel = peer.peer as? TelegramChannel, case .broadcast = channel.info {
+                    } else if case let .channel(channel) = peer.peer, case .broadcast = channel.info {
                         suffixString = ", \(strings.Conversation_StatusSubscribers(subscribers))"
                     } else {
                         suffixString = ", \(strings.Conversation_StatusMembers(subscribers))"
@@ -1071,13 +1073,13 @@ public enum ChatListSearchEntry: Comparable, Identifiable {
                     isSavedMessages = true
                 }
                 
-                return ContactsPeerItem(presentationData: ItemListPresentationData(presentationData), sortOrder: nameSortOrder, displayOrder: nameDisplayOrder, context: context, peerMode: .generalSearch(isSavedMessages: isSavedMessages), peer: .peer(peer: EnginePeer(peer.peer), chatPeer: EnginePeer(peer.peer)), status: .addressName(suffixString), badge: badge, requiresPremiumForMessaging: requiresPremiumForMessaging, enabled: enabled, selection: .none, editing: ContactsPeerItemEditing(editable: false, editing: false, revealed: false), index: nil, header: header, searchQuery: query, isAd: false, action: { _ in
-                    interaction.peerSelected(EnginePeer(peer.peer), nil, nil, nil, false)
+                return ContactsPeerItem(presentationData: ItemListPresentationData(presentationData), sortOrder: nameSortOrder, displayOrder: nameDisplayOrder, context: context, peerMode: .generalSearch(isSavedMessages: isSavedMessages), peer: .peer(peer: peer.peer, chatPeer: peer.peer), status: .addressName(suffixString), badge: badge, requiresPremiumForMessaging: requiresPremiumForMessaging, enabled: enabled, selection: .none, editing: ContactsPeerItemEditing(editable: false, editing: false, revealed: false), index: nil, header: header, searchQuery: query, isAd: false, action: { _ in
+                    interaction.peerSelected(peer.peer, nil, nil, nil, false)
                 }, disabledAction: { _ in
-                    interaction.disabledPeerSelected(EnginePeer(peer.peer), nil, requiresPremiumForMessaging ? .premiumRequired : .generic)
+                    interaction.disabledPeerSelected(peer.peer, nil, requiresPremiumForMessaging ? .premiumRequired : .generic)
                 }, contextAction: peerContextAction.flatMap { peerContextAction in
                     return { node, gesture, location in
-                        peerContextAction(EnginePeer(peer.peer), .search(nil), node, gesture, location)
+                        peerContextAction(peer.peer, .search(nil), node, gesture, location)
                     }
                 }, animationCache: interaction.animationCache, animationRenderer: interaction.animationRenderer, storyStats: storyStats.flatMap { stats in
                     return (stats.totalCount, stats.unseenCount, stats.hasUnseenCloseFriends)
@@ -1134,7 +1136,7 @@ public enum ChatListSearchEntry: Comparable, Identifiable {
                                     filterTitle = presentationData.strings.ChatList_Search_Messages_Channels
                                 case .groups:
                                     filterTitle = presentationData.strings.ChatList_Search_Messages_GroupChats
-                                case .privateChats:
+                                case .privateChats, .bots:
                                     filterTitle = presentationData.strings.ChatList_Search_Messages_PrivateChats
                                 case .globalPosts:
                                     filterTitle = presentationData.strings.ChatList_HeaderPublicPosts
@@ -1205,7 +1207,8 @@ public enum ChatListSearchEntry: Comparable, Identifiable {
                                 stats: EngineChatList.StoryStats(
                                     totalCount: stats.totalCount,
                                     unseenCount: stats.unseenCount,
-                                    hasUnseenCloseFriends: stats.hasUnseenCloseFriends
+                                    hasUnseenCloseFriends: stats.hasUnseenCloseFriends,
+                                    hasLiveItems: stats.hasLiveItems
                                 ),
                                 hasUnseenCloseFriends: stats.hasUnseenCloseFriends
                             )
@@ -1225,7 +1228,7 @@ public enum ChatListSearchEntry: Comparable, Identifiable {
                     filterTitle = presentationData.strings.ChatList_Search_Messages_Channels
                 case .groups:
                     filterTitle = presentationData.strings.ChatList_Search_Messages_GroupChats
-                case .privateChats:
+                case .privateChats, .bots:
                     filterTitle = presentationData.strings.ChatList_Search_Messages_PrivateChats
                 case .globalPosts:
                     filterTitle = presentationData.strings.ChatList_HeaderPublicPosts
@@ -1251,7 +1254,7 @@ public enum ChatListSearchEntry: Comparable, Identifiable {
                     filterTitle = presentationData.strings.ChatList_Search_Messages_Channels
                 case .groups:
                     filterTitle = presentationData.strings.ChatList_Search_Messages_GroupChats
-                case .privateChats:
+                case .privateChats, .bots:
                     filterTitle = presentationData.strings.ChatList_Search_Messages_PrivateChats
                 case .globalPosts:
                     filterTitle = presentationData.strings.ChatList_HeaderPublicPosts
@@ -1484,19 +1487,19 @@ private struct DownloadItem: Equatable {
 
 private func filteredPeerSearchQueryResults(value: ([FoundPeer], [FoundPeer]), scope: TelegramSearchPeersScope) -> ([FoundPeer], [FoundPeer]) {
     switch scope {
-    case .everywhere, .privateChats, .groups, .globalPosts:
+    case .everywhere, .privateChats, .bots, .groups, .globalPosts:
         return value
     case .channels:
         return (
             value.0.filter { peer in
-                if let channel = peer.peer as? TelegramChannel, case .broadcast = channel.info {
+                if case let .channel(channel) = peer.peer, case .broadcast = channel.info {
                     return true
                 } else {
                     return false
                 }
             },
             value.1.filter { peer in
-                if let channel = peer.peer as? TelegramChannel, case .broadcast = channel.info {
+                if case let .channel(channel) = peer.peer, case .broadcast = channel.info {
                     return true
                 } else {
                     return false
@@ -2062,7 +2065,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
         
         var defaultFoundRemoteMessagesSignal: Signal<([FoundRemoteMessages], Bool), NoError> = .single(([FoundRemoteMessages(messages: [], readCounters: [:], threadsData: [:], totalCount: 0)], false))
         if key == .globalPosts, let data = context.currentAppConfiguration.with({ $0 }).data, let value = data["ios_load_empty_global_posts"] as? Double, value != 0.0 {
-            let searchSignal = context.engine.messages.searchMessages(location: .general(scope: .globalPosts(allowPaidStars: nil), tags: nil, minDate: nil, maxDate: nil), query: "", state: nil, limit: 50)
+            let searchSignal = context.engine.messages.searchMessages(location: .general(scope: .globalPosts(allowPaidStars: nil), groupId: nil, tags: nil, minDate: nil, maxDate: nil, folderId: nil, communityId: nil), query: "", state: nil, limit: 50)
             |> map { resultData -> ChatListSearchMessagesResult in
                 let (result, updatedState) = resultData
                     
@@ -2581,28 +2584,28 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
             }
             let searchLocations: [SearchMessagesLocation]
             if key == .globalPosts {
-                searchLocations = [SearchMessagesLocation.general(scope: .globalPosts(allowPaidStars: approvedGlobalPostQueryState?.price), tags: nil, minDate: nil, maxDate: nil)]
+                searchLocations = [SearchMessagesLocation.general(scope: .globalPosts(allowPaidStars: approvedGlobalPostQueryState?.price), groupId: nil, tags: nil, minDate: nil, maxDate: nil, folderId: nil, communityId: nil)]
             } else if let options = options {
                 if case let .forum(peerId) = location {
-                    searchLocations = [.peer(peerId: peerId, fromId: nil, tags: tagMask, reactions: nil, threadId: nil, minDate: options.date?.0, maxDate: options.date?.1), .general(scope: .everywhere, tags: tagMask, minDate: options.date?.0, maxDate: options.date?.1)]
+                    searchLocations = [.peer(peerId: peerId, fromId: nil, tags: tagMask, reactions: nil, threadId: nil, minDate: options.date?.0, maxDate: options.date?.1), .general(scope: .everywhere, groupId: nil, tags: tagMask, minDate: options.date?.0, maxDate: options.date?.1, folderId: nil, communityId: nil)]
                 } else if let (peerId, _, _) = options.peer {
                     searchLocations = [.peer(peerId: peerId, fromId: nil, tags: tagMask, reactions: nil, threadId: nil, minDate: options.date?.0, maxDate: options.date?.1)]
                 } else {
                     if case let .chatList(groupId) = location, case .archive = groupId {
                         searchLocations = [.group(groupId: groupId._asGroup(), tags: tagMask, minDate: options.date?.0, maxDate: options.date?.1)]
                     } else {
-                        searchLocations = [.general(scope: searchScope, tags: tagMask, minDate: options.date?.0, maxDate: options.date?.1)]
+                        searchLocations = [.general(scope: searchScope, groupId: nil, tags: tagMask, minDate: options.date?.0, maxDate: options.date?.1, folderId: nil, communityId: nil)]
                     }
                 }
             } else {
                 if case .channels = key {
-                    searchLocations = [.general(scope: .channels, tags: tagMask, minDate: nil, maxDate: nil)]
+                    searchLocations = [.general(scope: .channels, groupId: nil, tags: tagMask, minDate: nil, maxDate: nil, folderId: nil, communityId: nil)]
                 } else if case let .forum(peerId) = location {
-                    searchLocations = [.peer(peerId: peerId, fromId: nil, tags: tagMask, reactions: nil, threadId: nil, minDate: nil, maxDate: nil), .general(scope: .everywhere, tags: tagMask, minDate: nil, maxDate: nil)]
+                    searchLocations = [.peer(peerId: peerId, fromId: nil, tags: tagMask, reactions: nil, threadId: nil, minDate: nil, maxDate: nil), .general(scope: .everywhere, groupId: nil, tags: tagMask, minDate: nil, maxDate: nil, folderId: nil, communityId: nil)]
                 } else if case let .chatList(groupId) = location, case .archive = groupId {
                     searchLocations = [.group(groupId: groupId._asGroup(), tags: tagMask, minDate: nil, maxDate: nil)]
                 } else {
-                    searchLocations = [.general(scope: searchScope, tags: tagMask, minDate: nil, maxDate: nil)]
+                    searchLocations = [.general(scope: searchScope, groupId: nil, tags: tagMask, minDate: nil, maxDate: nil, folderId: nil, communityId: nil)]
                 }
             }
             
@@ -2701,7 +2704,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                 let searchSignals: [Signal<(SearchMessagesResult, SearchMessagesState), NoError>]
                 
                 if key == .globalPosts {
-                    searchSignals = [context.engine.messages.searchMessages(location: .general(scope: .globalPosts(allowPaidStars: approvedGlobalPostQueryState?.price), tags: nil, minDate: nil, maxDate: nil), query: finalQuery, state: nil, limit: 50)]
+                    searchSignals = [context.engine.messages.searchMessages(location: .general(scope: .globalPosts(allowPaidStars: approvedGlobalPostQueryState?.price), groupId: nil, tags: nil, minDate: nil, maxDate: nil, folderId: nil, communityId: nil), query: finalQuery, state: nil, limit: 50)]
                 } else {
                     searchSignals = searchLocations.map { searchLocation in
                         return context.engine.messages.searchMessages(location: searchLocation, query: finalQuery, state: nil, limit: 50)
@@ -3685,7 +3688,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                     }
                 case let .globalPeer(foundPeer, _, _, _, _, _, _, _, _, _, _):
                     storyStatsIds.append(foundPeer.peer.id)
-                    if let user = foundPeer.peer as? TelegramUser, user.flags.contains(.requirePremium) {
+                    if case let .user(user) = foundPeer.peer, user.flags.contains(.requirePremium) {
                         requiresPremiumForMessagingPeerIds.append(foundPeer.peer.id)
                     }
                 case let .message(_, peer, _, _, _, _, _, _, _, _, _, _, _, _, _):
